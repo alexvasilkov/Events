@@ -10,8 +10,7 @@ import java.lang.annotation.ElementType;
  * <p/>
  * TODO: write documentation
  * 1. Purpose, usage examples
- * 2. only one async handler is allowed for each event id
- * 3. javadocs
+ * 2. javadocs
  */
 public class Events {
 
@@ -33,8 +32,8 @@ public class Events {
         return new Event.Builder(eventId).post();
     }
 
-    public static void cancel(int eventId) {
-        EventsDispatcher.cancelEvent(eventId);
+    public static void removeSticky(int eventId) {
+        EventsDispatcher.removeStickyEvent(eventId);
     }
 
 

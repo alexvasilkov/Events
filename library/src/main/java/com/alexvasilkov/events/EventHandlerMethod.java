@@ -25,22 +25,28 @@ class EventHandlerMethod {
         return type;
     }
 
-    EventCallback handle(Object target, Event event) {
+    void handle(Object target, Object parameter) {
         Throwable error = null;
         Object result = null;
 
         try {
             method.setAccessible(true);
-            result = method.invoke(target, event);
+            result = method.invoke(target, parameter);
         } catch (InvocationTargetException e) {
             error = e.getTargetException();
         } catch (Exception e) {
-            Log.e(EventHandlerMethod.class.getSimpleName(), "Cannot handle event " + event.getId()
+            Log.e(EventHandlerMethod.class.getSimpleName(), "Cannot handle event " + eventId
                     + " using method " + method.getName() + ": " + e.getMessage());
         }
 
-        return type == Type.CALLBACK
-                ? null : new EventCallback(event, result, error, EventCallback.Status.FINISHED, false);
+        if (type == Type.CALLBACK) return; // No response events for callback event
+
+        if (parameter instanceof Event) {
+            Event event = (Event) parameter;
+            if (result != null) EventsDispatcher.sendResult(event, result);
+            if (error != null) EventsDispatcher.sendError(event, error);
+            EventsDispatcher.sendFinished(event);
+        }
     }
 
 

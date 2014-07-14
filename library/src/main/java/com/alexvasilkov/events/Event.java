@@ -6,6 +6,9 @@ public class Event {
     private final Object data;
     private final boolean isSticky;
 
+    boolean isCanceled;
+    int handlersCount;
+
     Event(int id, Object data, boolean isSticky) {
         this.id = id;
         this.data = data;
@@ -23,6 +26,23 @@ public class Event {
 
     public boolean isSticky() {
         return isSticky;
+    }
+
+
+    public void sendResult(Object result) {
+        EventsDispatcher.sendResult(this, result);
+    }
+
+    public void postpone() {
+        EventsDispatcher.postponeEvent(this);
+    }
+
+    public void finishPostponed() {
+        EventsDispatcher.sendFinished(this);
+    }
+
+    public void cancel() {
+        EventsDispatcher.cancelEvent(this);
     }
 
 
