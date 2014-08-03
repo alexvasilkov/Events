@@ -6,23 +6,23 @@ import java.util.LinkedList;
 class EventReceiver {
 
     private final Class<?> targetClass;
-    private final LinkedList<EventHandlerMethod> methods;
+    private final LinkedList<EventHandler> methods;
+    private final WeakReference<?> weakReference;
     private Object strongReference;
-    private WeakReference<?> weakReference;
-    private boolean isUnregistered;
+    private volatile boolean isUnregistered;
 
     EventReceiver(Object target, boolean keepStrongReference) {
         targetClass = target.getClass();
-        methods = MethodsUtils.getMethodsFromClass(targetClass);
-        strongReference = keepStrongReference ? target : null;
+        methods = EventHandlerUtils.getMethodsFromClass(targetClass);
         weakReference = new WeakReference<Object>(target);
+        strongReference = keepStrongReference ? target : null;
     }
 
     Class<?> getTargetClass() {
         return targetClass;
     }
 
-    LinkedList<EventHandlerMethod> getMethods() {
+    LinkedList<EventHandler> getMethods() {
         return methods;
     }
 

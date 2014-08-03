@@ -21,20 +21,15 @@ class EventsDispatcher {
 
     private static final ExecutorService ASYNC_EXECUTOR = Executors.newCachedThreadPool();
 
-    private static final SparseArray<Event> STICKY_EVENTS = new SparseArray<Event>();
-    private static final SparseArray<EventCallback> STICKY_CALLBACKS = new SparseArray<EventCallback>();
-
-    private static final Set<Event> EVENTS_IN_PROGRESS = new HashSet<Event>();
+    private static final SparseArray<List<Event>> STARTED_EVENTS = new SparseArray<List<Event>>();
 
     private static final long MAX_TIME_IN_MAIN_THREAD = 10L;
     private static final long MESSAGE_DELAY = 10L;
 
     private static final int MSG_POST_EVENT = 0;
     private static final int MSG_POST_CALLBACK = 1;
-    private static final int MSG_REMOVE_STICKY = 2;
-    private static final int MSG_CANCEL_EVENT = 3;
-    private static final int MSG_POSTPONE_EVENT = 4;
-    private static final int MSG_DISPATCH = 5;
+    private static final int MSG_CANCEL_EVENT = 2;
+    private static final int MSG_DISPATCH = 3;
 
     private static final Handler MAIN_THREAD = new Handler(Looper.getMainLooper()) {
         @Override
@@ -46,14 +41,8 @@ class EventsDispatcher {
                 case MSG_POST_CALLBACK:
                     postCallbackInternal((EventCallback) msg.obj);
                     break;
-                case MSG_REMOVE_STICKY:
-                    removeStickyEventInternal(msg.arg1);
-                    break;
                 case MSG_CANCEL_EVENT:
                     cancelEventInternal((Event) msg.obj);
-                    break;
-                case MSG_POSTPONE_EVENT:
-                    postponeEventInternal((Event) msg.obj);
                     break;
                 case MSG_DISPATCH:
                     dispatchEventsInternal();
@@ -62,21 +51,30 @@ class EventsDispatcher {
         }
     };
 
+    private static EventsErrorHandler errorHandler = EventsErrorHandler.DEFAULT;
+
+    static void setErrorHandler(EventsErrorHandler handler) {
+        errorHandler = handler;
+    }
 
     static void register(Object target, boolean keepStrongReference) {
+        if (target == null) throw new NullPointerException("Target cannot be null");
+
         for (EventReceiver receiver : HANDLERS) {
             if (receiver.getTarget() == target)
-                throw new RuntimeException("Events receiver " + target + " already registered");
+                throw new RuntimeException("Events receiver " + Utils.getClassName(target) + " already registered");
         }
 
         EventReceiver receiver = new EventReceiver(target, keepStrongReference);
         HANDLERS.addFirst(receiver);
         notifyStickyEvents(receiver);
 
-        if (Events.DEBUG) Log.d(TAG, "Events receiver registered: " + target.getClass().getSimpleName());
+        if (Events.isDebug) Log.d(TAG, "Events receiver registered: " + Utils.getClassName(target));
     }
 
     static void unregister(Object target) {
+        if (target == null) throw new NullPointerException("Target cannot be null");
+
         boolean isUnregistered = false;
 
         for (Iterator<EventReceiver> iterator = HANDLERS.iterator(); iterator.hasNext(); ) {
@@ -90,9 +88,9 @@ class EventsDispatcher {
         }
 
         if (!isUnregistered)
-            throw new RuntimeException("Events receiver " + target + " was not registered");
+            throw new RuntimeException("Events receiver " + Utils.getClassName(target) + " was not registered");
 
-        if (Events.DEBUG) Log.d(TAG, "Events receiver unregistered: " + target.getClass().getSimpleName());
+        if (Events.isDebug) Log.d(TAG, "Events receiver unregistered: " + Utils.getClassName(target));
     }
 
     static void postEvent(Event event) {
@@ -106,35 +104,43 @@ class EventsDispatcher {
     private static void postEventInternal(Event event) {
         final int eventId = event.getId();
 
-        if (Events.DEBUG) Log.d(TAG, "Internal post, event: " + eventId);
-
-        if (event.isSticky()) STICKY_EVENTS.put(eventId, event);
-
-        int sizeBefore = QUEUE.size();
+        if (Events.isDebug) Log.d(TAG, "Internal event post: " + Utils.getName(eventId));
 
         for (EventReceiver receiver : HANDLERS) {
             if (receiver.getMethods() == null) continue;
 
-            for (EventHandlerMethod method : receiver.getMethods()) {
-                if (method.getEventId() != eventId) continue;
-                if (method.getType() == EventHandlerMethod.Type.CALLBACK) continue;
+            for (EventHandler method : receiver.getMethods()) {
+                if (method.getEventId() != eventId || method.getType().isCallback()) continue;
 
-                QUEUE.add(new QueuedEvent(receiver, method, event));
+                if (event.handlerType == null) {
+                    event.handlerType = method.getType();
+                } else if (event.handlerType.isMethod()) {
+                    throw new RuntimeException("Event of type " + event.handlerType + " can have only one handler");
+                } else if (method.getType().isMethod()) {
+                    throw new RuntimeException("Event of type " + event.handlerType + " can't have handlers of type "
+                            + method.getType());
+                }
 
-                if (Events.DEBUG) Log.d(TAG, "Event scheduled: " + eventId + " / method type = " + method.getType());
+                QUEUE.add(QueuedEvent.create(receiver, method, event));
+
+                if (Events.isDebug)
+                    Log.d(TAG, "Event scheduled: " + Utils.getName(eventId) + " / type = " + method.getType());
             }
         }
 
-        event.handlersCount = QUEUE.size() - sizeBefore;
-        if (event.handlersCount > 0) {
-            EVENTS_IN_PROGRESS.add(event);
-            postCallbackInternal(EventCallback.started(event));
-        }
+        if (event.handlerType != null) {
+            if (event.handlerType.isMethod()) postCallbackInternal(EventCallback.started(event));
 
-        dispatchEvents();
+            dispatchEvents();
+        }
     }
 
     private static void postCallback(EventCallback callback) {
+        EventHandler.Type handlerType = callback.getEvent().handlerType;
+        if (handlerType == null || !handlerType.isMethod())
+            throw new RuntimeException("Cannot sent " + callback.getStatus()
+                    + " callback for event of type " + handlerType);
+
         // Asking main thread to handle this callback
         MAIN_THREAD.sendMessageDelayed(MAIN_THREAD.obtainMessage(MSG_POST_CALLBACK, callback), MESSAGE_DELAY);
     }
@@ -145,102 +151,75 @@ class EventsDispatcher {
     private static void postCallbackInternal(EventCallback callback) {
         final int eventId = callback.getId();
 
-        // If event was canceled we should ignore all FINISHED callbacks except one marked as "canceling".
-        // If event wasn't canceled we should check if all handlers are passed, so we can send FINISHED callback.
-        if (callback.isFinished()) {
-            if (callback.isFinishedByCanceling()) {
-                if (callback.getEvent().handlersCount <= 0) return; // Already finished, no need to cancel
+        if (Events.isDebug)
+            Log.d(TAG, "Internal callback post: " + Utils.getName(eventId) + " / status = " + callback.getStatus());
 
-            } else if (callback.getEvent().isCanceled) {
-                if (Events.DEBUG) Log.d(TAG, "Skipped FINISHED callback for canceled event");
-                return;
-
-            } else {
-                int count = --callback.getEvent().handlersCount;
-                if (count > 0) return; // Not all handlers finished their work yet
-
-                if (count < 0) {
-                    Log.e(TAG, "Error event state: to much attempts to finish event " + callback.getId());
-                    return;
-                }
-            }
-
-            EVENTS_IN_PROGRESS.remove(callback.getEvent());
+        if (callback.getEvent().isFinished) {
+            if (Events.isDebug) Log.d(TAG, "Event " + Utils.getName(eventId) +
+                    " was already finished, ignoring " + callback.getStatus() + " callback");
+            return;
         }
 
-        if (Events.DEBUG)
-            Log.d(TAG, "Internal post, callback: " + eventId + " / callback status = " + callback.getStatus()
-                    + " / isCanceled = " + callback.isFinishedByCanceling());
-
         if (callback.isStarted()) {
-            STICKY_CALLBACKS.put(eventId, callback); // "started" callback should be sticky
+            // Saving started event
+            List<Event> events = STARTED_EVENTS.get(eventId);
+            if (events == null) STARTED_EVENTS.put(eventId, events = new LinkedList<Event>());
+            events.add(callback.getEvent());
         } else if (callback.isFinished()) {
-            STICKY_CALLBACKS.remove(eventId); // removing sticky event for "started" event
+            // Removing finished event
+            STARTED_EVENTS.get(eventId).remove(callback.getEvent());
+            callback.getEvent().isFinished = true;
         }
 
         for (EventReceiver receiver : HANDLERS) {
             if (receiver.getMethods() == null) continue;
 
-            for (EventHandlerMethod method : receiver.getMethods()) {
-                if (method.getEventId() != eventId) continue;
-                if (method.getType() != EventHandlerMethod.Type.CALLBACK) continue;
+            for (EventHandler method : receiver.getMethods()) {
+                if (method.getEventId() != eventId || !method.getType().isCallback()) continue;
 
-                QUEUE.add(new QueuedEvent(receiver, method, callback));
+                QUEUE.add(QueuedEvent.create(receiver, method, callback));
 
-                if (Events.DEBUG) Log.d(TAG, "Callback scheduled: " + eventId);
+                if (Events.isDebug) Log.d(TAG, "Callback scheduled: " + Utils.getName(eventId));
             }
+        }
+
+        if (callback.isError()) {
+            QUEUE.add(QueuedEvent.createErrorHandler(callback));
         }
 
         dispatchEvents();
     }
 
-    static void sendResult(Event event, Object result) {
-        if (event.isCanceled) return;
+    static void sendResult(Event event, Object[] result) {
         postCallback(EventCallback.result(event, result));
     }
 
     static void sendError(Event event, Throwable error) {
-        if (event.isCanceled) return;
         postCallback(EventCallback.error(event, error));
     }
 
     static void sendFinished(Event event) {
-        if (event.isCanceled) return;
         postCallback(EventCallback.finished(event));
     }
 
     private static void notifyStickyEvents(EventReceiver receiver) {
         if (receiver.getMethods() == null) return;
 
-        for (EventHandlerMethod method : receiver.getMethods()) {
-            boolean isCallbackType = method.getType() == EventHandlerMethod.Type.CALLBACK;
+        for (EventHandler method : receiver.getMethods()) {
+            if (!method.getType().isCallback()) continue;
+
             int eventId = method.getEventId();
 
-            Object stickyEvent = isCallbackType ? STICKY_CALLBACKS.get(eventId) : STICKY_EVENTS.get(eventId);
-            if (stickyEvent == null) continue;
-
-            if (method.getType() == EventHandlerMethod.Type.ASYNC) {
-                throw new RuntimeException("Sticky event cannot be handled by async handler method");
+            List<Event> events = STARTED_EVENTS.get(eventId);
+            if (events != null) {
+                for (Event event : events) {
+                    QUEUE.add(QueuedEvent.create(receiver, method, EventCallback.started(event)));
+                    if (Events.isDebug) Log.d(TAG, "Callback of type STARTED is resent: " + Utils.getName(eventId));
+                }
             }
-
-            QUEUE.add(new QueuedEvent(receiver, method, stickyEvent));
-
-            if (Events.DEBUG)
-                Log.d(TAG, "Sticky event scheduled: " + eventId + " / method type = " + method.getType());
         }
 
         dispatchEvents();
-    }
-
-    static void removeStickyEvent(int eventId) {
-        MAIN_THREAD.sendMessageDelayed(MAIN_THREAD.obtainMessage(MSG_REMOVE_STICKY, eventId, 0), MESSAGE_DELAY);
-    }
-
-    /**
-     * This method will always be called from UI thread
-     */
-    private static void removeStickyEventInternal(int eventId) {
-        STICKY_EVENTS.remove(eventId);
     }
 
     static void cancelEvent(Event event) {
@@ -256,21 +235,14 @@ class EventsDispatcher {
         }
 
         if (!event.isCanceled) {
-            if (Events.DEBUG) Log.d(TAG, "Canceling event: " + event.getId());
+            if (Events.isDebug) Log.d(TAG, "Canceling event: " + Utils.getName(event.getId()));
             event.isCanceled = true;
-            postCallback(EventCallback.canceled(event));
+            postCallback(EventCallback.finished(event));
         }
-    }
 
-    static void postponeEvent(Event event) {
-        MAIN_THREAD.sendMessage(MAIN_THREAD.obtainMessage(MSG_POSTPONE_EVENT, event));
-    }
-
-    /**
-     * This method will always be called from UI thread
-     */
-    private static void postponeEventInternal(Event event) {
-        event.handlersCount++;
+        // Note, that we have a gap between cancelEvent method and cancelEventInternal method where
+        // isCanceled is actually set to true. So some callbacks including FINISHED can be sent during this gap.
+        // So we should have mechanism to prevent repeated FINISHED events - see flag Event#isFinished.
     }
 
     private static void dispatchEvents() {
@@ -281,26 +253,31 @@ class EventsDispatcher {
      * This method will always be called from UI thread
      */
     private static void dispatchEventsInternal() {
-        if (Events.DEBUG) Log.d(TAG, "Dispatching: started");
+        if (Events.isDebug) Log.d(TAG, "Dispatching started");
 
         long started = SystemClock.uptimeMillis();
 
         while (!QUEUE.isEmpty()) {
             QueuedEvent queuedEvent = QUEUE.poll();
 
-            if (Events.DEBUG) Log.d(TAG, "Dispatching: running " + queuedEvent.method.getType()
-                    + " event = " + queuedEvent.method.getEventId());
+            if (queuedEvent.isErrorHandling) {
+                EventCallback callback = (EventCallback) queuedEvent.event;
+                if (!callback.isErrorHandled() && errorHandler != null) errorHandler.onError(callback);
+            } else if (!queuedEvent.receiver.isUnregistered()) {
+                if (Events.isDebug) Log.d(TAG, "Dispatching: " + queuedEvent.method.getType()
+                        + " event = " + Utils.getName(queuedEvent.method.getEventId()));
 
-            if (queuedEvent.method.getType() == EventHandlerMethod.Type.ASYNC) {
-                ASYNC_EXECUTOR.execute(new AsyncRunnable(queuedEvent));
-            } else {
-                executeQueuedEvent(queuedEvent);
+                if (queuedEvent.method.getType().isAsync()) {
+                    ASYNC_EXECUTOR.execute(new AsyncRunnable(queuedEvent));
+                } else {
+                    executeQueuedEvent(queuedEvent);
+                }
             }
 
             if (SystemClock.uptimeMillis() - started > MAX_TIME_IN_MAIN_THREAD) {
-                if (Events.DEBUG)
-                    Log.d(TAG, "Dispatching: to much time in main thread = " + (SystemClock.uptimeMillis() - started)
-                            + ", scheduling next dispatch cycle");
+                if (Events.isDebug)
+                    Log.d(TAG, "Dispatching: time in main thread = " + (SystemClock.uptimeMillis() - started)
+                            + "ms, scheduling next dispatch cycle");
                 dispatchEvents();
                 return;
             }
@@ -308,9 +285,10 @@ class EventsDispatcher {
     }
 
     private static void executeQueuedEvent(QueuedEvent queuedEvent) {
+        Object target = queuedEvent.receiver.getTarget();
+
         if (queuedEvent.receiver.isUnregistered()) return; // Receiver was unregistered
 
-        Object target = queuedEvent.receiver.getTarget();
         if (target == null) {
             Log.e(TAG, "Event receiver " + queuedEvent.receiver.getTargetClass().getName()
                     + " was not correctly unregistered");
@@ -324,13 +302,24 @@ class EventsDispatcher {
 
     private static class QueuedEvent {
         final EventReceiver receiver;
-        final EventHandlerMethod method;
+        final EventHandler method;
         final Object event;
 
-        QueuedEvent(EventReceiver receiver, EventHandlerMethod method, Object event) {
+        final boolean isErrorHandling;
+
+        private QueuedEvent(EventReceiver receiver, EventHandler method, Object event, boolean isErrorHandling) {
             this.receiver = receiver;
             this.method = method;
             this.event = event;
+            this.isErrorHandling = isErrorHandling;
+        }
+
+        static QueuedEvent create(EventReceiver receiver, EventHandler method, Object event) {
+            return new QueuedEvent(receiver, method, event, false);
+        }
+
+        static QueuedEvent createErrorHandler(EventCallback callback) {
+            return new QueuedEvent(null, null, callback, true);
         }
     }
 
