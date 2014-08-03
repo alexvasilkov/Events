@@ -1,13 +1,10 @@
 buildscript {
-    repositories {
-        mavenCentral()
-    }
     dependencies {
         classpath 'com.android.tools.build:gradle:0.10.+'
     }
 }
 
-apply plugin: 'android-library'
+apply plugin: 'android'
 
 android {
     compileSdkVersion Integer.parseInt(ANDROID_COMPILE_SDK)
@@ -21,4 +18,5 @@ android {
     }
 }
 
-apply from: 'https://raw.githubusercontent.com/chrisbanes/gradle-mvn-push/master/gradle-mvn-push.gradle'
+// New version can be uploaded with 'gradlew clean :library:jar :library:uploadArchives'
+apply from: 'gradle-mvn-push.gradle'
