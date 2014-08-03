@@ -92,8 +92,8 @@ afterEvaluate { project ->
         sign configurations.archives
     }
 
-    task jar(type: Jar) {
-        from android.sourceSets.main.java
+    task jar(type: Jar, dependsOn: compileReleaseJava) {
+        from file('build/classes/release/') // TODO: Get rid of hardcoded path
     }
 
     task javadocs(type: Javadoc) {

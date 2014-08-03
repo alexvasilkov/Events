@@ -55,13 +55,13 @@ public class Events {
     /**
      * Methods marked with this annotation will receive events in the main thread.
      * <p/>
-     * Unlike {@link no.itslearning.itslearning.logic.eventbus.Events.AsyncMethod} and
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.UiMethod} annotations no callbacks will be send back.
+     * Unlike {@link com.alexvasilkov.events.Events.AsyncMethod} and
+     * {@link com.alexvasilkov.events.Events.UiMethod} annotations no callbacks will be send back.
      * <p/>
      * <b>Note</b>: for each event id there can be any number of handlers marked with this annotation,
      * but you can't mix them with other handlers marked as
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.AsyncMethod} or
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.UiMethod}.
+     * {@link com.alexvasilkov.events.Events.AsyncMethod} or
+     * {@link com.alexvasilkov.events.Events.UiMethod}.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -73,10 +73,10 @@ public class Events {
      * Methods marked with this annotation will receive events in <b>background thread</b>.
      * <p/>
      * <b>Note</b>: for each event id you can use only one method marked with this annotation. You also cannot use other
-     * handlers marked as {@link no.itslearning.itslearning.logic.eventbus.Events.UiMethod} or
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.Receiver} for this event id.
+     * handlers marked as {@link com.alexvasilkov.events.Events.UiMethod} or
+     * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
-     * See also {@link no.itslearning.itslearning.logic.eventbus.Events.Callback} annotation.
+     * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -88,10 +88,10 @@ public class Events {
      * Methods marked with this annotation will receive events in <b>main thread</b>.
      * <p/>
      * <b>Note</b>: for each event id you can use only one method marked with this annotation. You also cannot use other
-     * handlers marked as {@link no.itslearning.itslearning.logic.eventbus.Events.AsyncMethod} or
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.Receiver} for this event id.
+     * handlers marked as {@link com.alexvasilkov.events.Events.AsyncMethod} or
+     * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
-     * See also {@link no.itslearning.itslearning.logic.eventbus.Events.Callback} annotation.
+     * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -101,16 +101,16 @@ public class Events {
 
     /**
      * Methods marked with this annotation will receive callbacks from execution method (marked with
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.AsyncMethod} or
-     * {@link no.itslearning.itslearning.logic.eventbus.Events.UiMethod} annotation) with statuses:
+     * {@link com.alexvasilkov.events.Events.AsyncMethod} or
+     * {@link com.alexvasilkov.events.Events.UiMethod} annotation) with statuses:
      * <ul>
-     * <li/>{@link no.itslearning.itslearning.logic.eventbus.EventCallback.Status#STARTED}
-     * <li/>{@link no.itslearning.itslearning.logic.eventbus.EventCallback.Status#RESULT}<br/>
+     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#STARTED}
+     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#RESULT}<br/>
      * Methods {@link EventCallback#getResult()} and {@link EventCallback#getResult(int)} can be used
      * to retrieve the result
-     * <li/>{@link no.itslearning.itslearning.logic.eventbus.EventCallback.Status#ERROR}<br/>
+     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#ERROR}<br/>
      * Method {@link EventCallback#getError()} can be used to retrieve the error.
-     * <li/>{@link no.itslearning.itslearning.logic.eventbus.EventCallback.Status#FINISHED}
+     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#FINISHED}
      * </ul>
      */
     @java.lang.annotation.Target({ElementType.METHOD})
