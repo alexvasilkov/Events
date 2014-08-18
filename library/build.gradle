@@ -1,10 +1,22 @@
-buildscript {
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.10.+'
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+allprojects {
+    buildscript {
+    }
+    repositories {
+        mavenCentral()
     }
 }
 
-apply plugin: 'android'
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.12.+'
+    }
+}
+
+apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion Integer.parseInt(ANDROID_COMPILE_SDK)
