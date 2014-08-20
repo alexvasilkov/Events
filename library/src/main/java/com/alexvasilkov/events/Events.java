@@ -36,7 +36,19 @@ public class Events {
     }
 
     public static void register(final Object receiver) {
-        EventsDispatcher.register(receiver, true);
+        EventsDispatcher.register(receiver, false, null);
+    }
+
+    public static void registerWithPause(final Object receiver, final String receiverId) {
+        EventsDispatcher.register(receiver, false, receiverId);
+    }
+
+    public static void pause(final Object receiver) {
+        EventsDispatcher.pause(receiver);
+    }
+
+    public static void resume(final Object receiver) {
+        EventsDispatcher.resume(receiver);
     }
 
     public static void unregister(final Object receiver) {
@@ -59,6 +71,13 @@ public class Events {
         return new Event.Builder(Utils.convertNameToId(eventId)).post();
     }
 
+    public static boolean hasEvent(final Object receiver, final int eventId) {
+        return null != EventsDispatcher.getEvent(receiver, eventId);
+    }
+
+    public static boolean hasEvent(final Object receiver, final String eventId) {
+        return null != EventsDispatcher.getEvent(receiver, Utils.convertNameToId(eventId));
+    }
 
     /**
      * Methods marked with this annotation will receive events in the main thread.

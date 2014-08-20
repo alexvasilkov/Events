@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-public final class EventHandlerUtils {
+final class EventHandlerUtils {
 
     private static final String TAG = EventHandlerUtils.class.getSimpleName();
 
