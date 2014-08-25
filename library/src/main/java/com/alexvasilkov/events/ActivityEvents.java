@@ -61,7 +61,7 @@ public final class ActivityEvents implements Serializable {
 
     public void onFinish() {
         Events.unregister(mActivity);
-        USED_UID_LIST.remove(mUid);
+        removeUidFromUsed(mUid);
     }
 
     private void performPause() {
@@ -77,5 +77,9 @@ public final class ActivityEvents implements Serializable {
         } while (USED_UID_LIST.contains(result));
         USED_UID_LIST.add(result);
         return result;
+    }
+
+    public static void removeUidFromUsed(final String uid) {
+        USED_UID_LIST.remove(uid);
     }
 }
