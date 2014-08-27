@@ -59,13 +59,14 @@ class EventReceiver {
 
     void markAsResumed() {
         if (null != strongReference) {
-            throw new IllegalStateException("pause can't be called on strong referenced object");
+            throw new IllegalStateException("resume can't be called on strong referenced object");
         }
         isInPause = false;
     }
 
     void markAsUnregistered() {
         isUnregistered = true;
+        weakReference.clear();
         strongReference = null;
     }
 

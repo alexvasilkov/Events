@@ -7,6 +7,9 @@ public class Event {
 
     EventHandler.Type handlerType;
 
+    // this field is inited only if we want one receiver for this event
+    EventReceiver eventReceiver;
+
     // Whether "finished" callback was already sent and all subsequent callbacks should be ignored.
     boolean isFinished;
 
@@ -18,7 +21,7 @@ public class Event {
     // after handler method is finished.
     boolean isPostponed;
 
-    Event(int id, Object[] data) {
+    Event(final int id, final Object[] data) {
         this.id = id;
         this.data = data;
     }
@@ -32,7 +35,7 @@ public class Event {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getData(int index) {
+    public <T> T getData(final int index) {
         return data == null || data.length <= index ? null : (T) data[index];
     }
 
@@ -47,7 +50,7 @@ public class Event {
      * You can only use this method with events received inside methods marked with
      * {@link Events.AsyncMethod} or {@link Events.UiMethod} annotations.
      */
-    public void sendResult(Object... result) {
+    public void sendResult(final Object... result) {
         EventsDispatcher.sendResult(this, result);
     }
 
@@ -79,21 +82,26 @@ public class Event {
         private final int id;
         private Object[] data;
 
-        Builder(int id) {
+        Builder(final int id) {
             this.id = id;
         }
 
-        public Builder data(Object... data) {
+        public Builder data(final Object... data) {
             this.data = data;
             return this;
         }
 
         public Event post() {
-            Event event = new Event(id, data);
+            final Event event = new Event(id, data);
             EventsDispatcher.postEvent(event);
             return event;
         }
 
+        public Event postTo(final Object receiver) {
+            final Event event = new Event(id, data);
+            EventsDispatcher.postEventTo(event, receiver);
+            return event;
+        }
     }
 
 }

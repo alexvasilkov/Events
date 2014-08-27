@@ -27,15 +27,17 @@ public final class ActivityEvents implements Serializable {
             mUid = generateUid();
         }
         mActivity = activity;
-        EventsDispatcher.register(activity, false, mUid);
+        if (!mActivity.isFinishing()) {
+            EventsDispatcher.register(activity, false, mUid);
+        }
     }
 
     public void onStart() {
-        EventsDispatcher.resume(mActivity);
+        performResume();
     }
 
     public void onResume() {
-        EventsDispatcher.resume(mActivity);
+        performResume();
     }
 
     public void onStartNewActivity() {
@@ -62,6 +64,12 @@ public final class ActivityEvents implements Serializable {
     public void onFinish() {
         Events.unregister(mActivity);
         removeUidFromUsed(mUid);
+    }
+
+    private void performResume() {
+        if (!mActivity.isFinishing()) {
+            EventsDispatcher.resume(mActivity);
+        }
     }
 
     private void performPause() {

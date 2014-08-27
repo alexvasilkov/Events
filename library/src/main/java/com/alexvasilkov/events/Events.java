@@ -15,10 +15,13 @@ import java.lang.annotation.ElementType;
  * 1. Purpose, usage examples
  * 2. javadocs
  */
-public class Events {
+public final class Events {
 
     static boolean isDebug = false;
     static Context appContext;
+
+    private Events() {
+    }
 
     /**
      * Stores application context. It will be used to get events name by ids (if event id is Android id resource).
@@ -36,7 +39,7 @@ public class Events {
     }
 
     public static void register(final Object receiver) {
-        EventsDispatcher.register(receiver, false, null);
+        EventsDispatcher.register(receiver, true, null);
     }
 
     public static void registerWithPause(final Object receiver, final String receiverId) {
@@ -55,28 +58,28 @@ public class Events {
         EventsDispatcher.unregister(receiver);
     }
 
+    public static Event.Builder create(final String eventId) {
+        return create(Utils.convertNameToId(eventId));
+    }
+
     public static Event.Builder create(final int eventId) {
         return new Event.Builder(eventId);
     }
 
-    public static Event.Builder create(final String eventId) {
-        return new Event.Builder(Utils.convertNameToId(eventId));
+    public static Event post(final String eventId) {
+        return post(Utils.convertNameToId(eventId));
     }
 
     public static Event post(final int eventId) {
         return new Event.Builder(eventId).post();
     }
 
-    public static Event post(final String eventId) {
-        return new Event.Builder(Utils.convertNameToId(eventId)).post();
+    public static boolean hasEvent(final Object receiver, final String eventId) {
+        return hasEvent(receiver, Utils.convertNameToId(eventId));
     }
 
     public static boolean hasEvent(final Object receiver, final int eventId) {
         return null != EventsDispatcher.getEvent(receiver, eventId);
-    }
-
-    public static boolean hasEvent(final Object receiver, final String eventId) {
-        return null != EventsDispatcher.getEvent(receiver, Utils.convertNameToId(eventId));
     }
 
     /**

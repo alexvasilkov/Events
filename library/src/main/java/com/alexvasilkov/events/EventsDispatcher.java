@@ -14,7 +14,7 @@ import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-class EventsDispatcher {
+final class EventsDispatcher {
 
     private static final String TAG = EventsDispatcher.class.getSimpleName();
 
@@ -62,6 +62,9 @@ class EventsDispatcher {
 
     private static EventsErrorHandler errorHandler = EventsErrorHandler.DEFAULT;
 
+    private EventsDispatcher() {
+    }
+
     static void setErrorHandler(final EventsErrorHandler handler) {
         errorHandler = handler;
     }
@@ -76,12 +79,15 @@ class EventsDispatcher {
 
         EventReceiver eventReceiver = null;
         for (final EventReceiver receiver : HANDLERS) {
-            if (receiver.getTarget() == target) {
+            if (null == targetId && receiver.getTarget() == target) {
                 throw new RuntimeException("Events receiver " + Utils.getClassName(target) + " already registered");
             }
             if (null != targetId && targetId.equals(receiver.getTargetId())) {
                 if (null != eventReceiver) {
                     throw new IllegalStateException("double receivers with same targetId found");
+                }
+                if (!receiver.isInPause()) {
+                    throw new IllegalStateException("old receiver was not in pause and try to register again!");
                 }
                 eventReceiver = receiver;
             }
@@ -91,16 +97,18 @@ class EventsDispatcher {
         if (null == eventReceiver) {
             receiver = new EventReceiver(target, targetId, keepStrongReference);
             HANDLERS.addFirst(receiver);
+            if (Events.isDebug) {
+                Log.d(TAG, "Found new receiver: " + Utils.getClassName(target));
+            }
         } else {
             receiver = eventReceiver;
             receiver.setTarget(target);
             receiver.markAsResumed();
+            if (Events.isDebug) {
+                Log.d(TAG, "Receiver marked as resumed!: " + Utils.getClassName(target));
+            }
         }
         notifyStickyEvents(receiver);
-
-        if (Events.isDebug) {
-            Log.d(TAG, "Events receiver registered: " + Utils.getClassName(target));
-        }
     }
 
     static void pause(final Object target) {
@@ -181,6 +189,30 @@ class EventsDispatcher {
         } else if (Events.isDebug) {
             Log.d(TAG, "Events receiver unregistered: " + Utils.getClassName(target));
         }
+    }
+
+    /**
+     * This method should always be called from UI thread
+     */
+    static void postEventTo(final Event event, final Object receiver) {
+        if (null == receiver) {
+            throw new NullPointerException("receiver can't be null");
+        }
+        if (Looper.getMainLooper() != Looper.myLooper()) {
+            throw new IllegalStateException("This method can only be called on MainThread");
+        }
+        EventReceiver singleReceiver = null;
+        for (final EventReceiver eventReceiver : HANDLERS) {
+            if (receiver == eventReceiver.getTarget()) {
+                singleReceiver = eventReceiver;
+                break;
+            }
+        }
+        if (null == singleReceiver) {
+            throw new IllegalArgumentException("Receiver wasn't found. Have you registered it before?");
+        }
+        event.eventReceiver = singleReceiver;
+        postEvent(event);
     }
 
     static void postEvent(final Event event) {
@@ -267,7 +299,8 @@ class EventsDispatcher {
             Log.d(TAG, "Internal callback post: " + Utils.getName(eventId) + " / status = " + callback.getStatus());
         }
 
-        if (callback.getEvent().isFinished) {
+        final Event event = callback.getEvent();
+        if (event.isFinished) {
             if (Events.isDebug) {
                 Log.d(TAG, "Event " + Utils.getName(eventId) +
                         " was already finished, ignoring " + callback.getStatus() + " callback");
@@ -281,11 +314,11 @@ class EventsDispatcher {
             if (events == null) {
                 STARTED_EVENTS.put(eventId, events = new LinkedList<Event>());
             }
-            events.add(callback.getEvent());
+            events.add(event);
         } else if (callback.isFinished()) {
             // Removing finished event
-            STARTED_EVENTS.get(eventId).remove(callback.getEvent());
-            callback.getEvent().isFinished = true;
+            STARTED_EVENTS.get(eventId).remove(event);
+            event.isFinished = true;
         }
 
         for (final EventReceiver receiver : HANDLERS) {
@@ -295,6 +328,9 @@ class EventsDispatcher {
 
             for (final EventHandler method : receiver.getMethods()) {
                 if (method.getEventId() != eventId || !method.getType().isCallback()) {
+                    continue;
+                }
+                if (event.eventReceiver != null && event.eventReceiver != receiver) {
                     continue;
                 }
 
@@ -347,6 +383,10 @@ class EventsDispatcher {
             final List<Event> events = STARTED_EVENTS.get(eventId);
             if (events != null) {
                 for (final Event event : events) {
+                    if (null != event.eventReceiver && event.eventReceiver != receiver) {
+                        continue;
+                    }
+
                     QUEUE.add(QueuedEvent.create(receiver, method, EventCallback.started(event)));
                     if (Events.isDebug) {
                         Log.d(TAG, "Callback of type STARTED is resent: " + Utils.getName(eventId));
@@ -403,49 +443,57 @@ class EventsDispatcher {
 
         for (final Iterator<QueuedEvent> iterator = QUEUE.iterator(); iterator.hasNext(); ) {
             final QueuedEvent queuedEvent = iterator.next();
-            if (queuedEvent.receiver.isUnregistered()) {
-                iterator.remove();
-                continue;
-            }
-            if (queuedEvent.receiver.isInPause()) {
-                continue;
-            }
-            iterator.remove();
 
             if (queuedEvent.isErrorHandling) {
+                // error handling don't have receiver, but other should have
                 final EventCallback callback = (EventCallback) queuedEvent.event;
                 if (!callback.isErrorHandled() && errorHandler != null) {
                     errorHandler.onError(callback);
                 }
-            } else if (!queuedEvent.receiver.isUnregistered()) {
-                if (Events.isDebug) {
-                    Log.d(TAG, "Dispatching: " + queuedEvent.method.getType() + " event = " + Utils.getName(queuedEvent.method.getEventId()));
+                iterator.remove();
+            } else {
+                if (queuedEvent.receiver.isUnregistered()) {
+                    iterator.remove();
+                    continue;
+                }
+                if (queuedEvent.receiver.isInPause()) {
+                    continue;
+                }
+                iterator.remove();
+
+                if (!queuedEvent.receiver.isUnregistered()) {
+                    if (Events.isDebug) {
+                        Log.d(TAG, "Dispatching: " + queuedEvent.method.getType() + " event = " + Utils.getName(queuedEvent.method.getEventId()));
+                    }
+
+                    if (queuedEvent.method.getType().isAsync()) {
+                        ASYNC_EXECUTOR.execute(new AsyncRunnable(queuedEvent));
+                    } else {
+                        executeQueuedEvent(queuedEvent);
+                    }
                 }
 
-                if (queuedEvent.method.getType().isAsync()) {
-                    ASYNC_EXECUTOR.execute(new AsyncRunnable(queuedEvent));
-                } else {
-                    executeQueuedEvent(queuedEvent);
+                if (SystemClock.uptimeMillis() - started > MAX_TIME_IN_MAIN_THREAD) {
+                    if (Events.isDebug) {
+                        Log.d(TAG, "Dispatching: time in main thread = " + (SystemClock.uptimeMillis() - started) +
+                                "ms, scheduling next dispatch cycle");
+                    }
+                    dispatchEvents();
+                    return;
                 }
-            }
-
-            if (SystemClock.uptimeMillis() - started > MAX_TIME_IN_MAIN_THREAD) {
-                if (Events.isDebug) {
-                    Log.d(TAG, "Dispatching: time in main thread = " + (SystemClock.uptimeMillis() - started) + "ms, scheduling next dispatch cycle");
-                }
-                dispatchEvents();
-                return;
             }
         }
     }
 
     private static void executeQueuedEvent(final QueuedEvent queuedEvent) {
         if (queuedEvent.receiver.isUnregistered() || queuedEvent.receiver.isInPause()) {
+            Log.d(TAG, "Dispatching: executeQueuedEvent = isUnregistered or isInPause");
             return; // Receiver was unregistered or paused
         }
         final Object target = queuedEvent.receiver.getTarget();
 
         if (target == null) {
+            Log.d(TAG, "Dispatching: executeQueuedEvent = target == null");
 /*
             todo check if this code is needed
 
