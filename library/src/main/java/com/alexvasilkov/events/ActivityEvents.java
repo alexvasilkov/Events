@@ -71,13 +71,13 @@ public final class ActivityEvents implements Serializable {
     }
 
     private void performResume() {
-        if (!mActivity.isFinishing()) {
+        if (null != mActivity && !mActivity.isFinishing()) {
             EventsDispatcher.resume(mActivity);
         }
     }
 
     private void performPause() {
-        if (!mActivity.isFinishing()) {
+        if (null != mActivity && !mActivity.isFinishing()) {
             Events.pause(mActivity);
         }
     }
