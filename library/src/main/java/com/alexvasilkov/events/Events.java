@@ -46,8 +46,8 @@ public final class Events {
         EventsDispatcher.register(receiver, false, receiverId);
     }
 
-    public static void pause(final Object receiver) {
-        EventsDispatcher.pause(receiver);
+    public static void pause(final Object receiver, final String receiverId) {
+        EventsDispatcher.pause(receiver, receiverId);
     }
 
     public static void resume(final Object receiver) {

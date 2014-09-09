@@ -111,15 +111,15 @@ final class EventsDispatcher {
         notifyStickyEvents(receiver);
     }
 
-    static void pause(final Object target) {
-        if (target == null) {
-            throw new NullPointerException("Target cannot be null");
+    static void pause(final Object target, final String targetId) {
+        if (target == null || targetId == null) {
+            throw new NullPointerException("Target and targetId cannot be null");
         }
 
         boolean notFound = true;
 
         for (final EventReceiver receiver : HANDLERS) {
-            if (receiver.getTarget() == target) {
+            if (receiver.getTarget() == target || targetId.equals(receiver.getTargetId())) {
                 if (receiver.isInPause()) {
                     // already in pause. nothing to do
                     return;

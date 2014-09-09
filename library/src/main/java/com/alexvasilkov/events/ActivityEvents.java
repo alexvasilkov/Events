@@ -20,7 +20,7 @@ public final class ActivityEvents implements Serializable {
     private static final long serialVersionUID = -1591622740358019048L;
 
     private String mUid;
-    private boolean mRegistered;
+    private transient boolean mRegistered;
     private transient Activity mActivity;
 
     public void onCreate(final Activity activity) {
@@ -68,17 +68,18 @@ public final class ActivityEvents implements Serializable {
             Events.unregister(mActivity);
         }
         removeUidFromUsed(mUid);
+        mRegistered = false;
     }
 
     private void performResume() {
-        if (null != mActivity && !mActivity.isFinishing()) {
+        if (mRegistered && !mActivity.isFinishing()) {
             EventsDispatcher.resume(mActivity);
         }
     }
 
     private void performPause() {
-        if (null != mActivity && !mActivity.isFinishing()) {
-            Events.pause(mActivity);
+        if (mRegistered && !mActivity.isFinishing()) {
+            Events.pause(mActivity, mUid);
         }
     }
 
