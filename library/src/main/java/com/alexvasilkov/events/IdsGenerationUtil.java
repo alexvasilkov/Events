@@ -11,11 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author MiG35
  */
-class IdsGenerationUtil {
-
-    private static final boolean USER_NATIVE_REALIZATION = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
+final class IdsGenerationUtil {
 
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
+
+    private IdsGenerationUtil() {
+    }
 
     /**
      * Generate a value suitable for use in {@link android.view.View#setId(int)}.
@@ -24,7 +25,7 @@ class IdsGenerationUtil {
      * @return a generated ID value
      */
     public static int generateViewId() {
-        if (USER_NATIVE_REALIZATION) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             return View.generateViewId();
         } else {
             for (; ; ) {

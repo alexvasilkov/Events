@@ -73,7 +73,7 @@ public final class Events {
      * {@link com.alexvasilkov.events.Events.AsyncMethod} or
      * {@link com.alexvasilkov.events.Events.UiMethod}.
      * <p/>
-     * You can set both value and key parameters.
+     * You can set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -93,7 +93,7 @@ public final class Events {
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
      * <p/>
-     * You <b>can't</b> set both value and key parameters.
+     * You <b>can't</b> set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -113,7 +113,7 @@ public final class Events {
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
      * <p/>
-     * You <b>can't</b> set both value and key parameters.
+     * You <b>can't</b> set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -138,7 +138,7 @@ public final class Events {
      * <li/>{@link com.alexvasilkov.events.EventCallback.Status#FINISHED}
      * </ul>
      * <p/>
-     * You <b>can't</b> set both value and key parameters.
+     * You <b>can't</b> set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
