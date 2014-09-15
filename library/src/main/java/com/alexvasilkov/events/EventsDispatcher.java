@@ -515,26 +515,6 @@ final class EventsDispatcher {
         queuedEvent.method.handle(target, queuedEvent.event);
     }
 
-    public static Object getEvent(final Object receiver, final int eventId) {
-        if (null == receiver) {
-            throw new RuntimeException("receiver can't be null!");
-        }
-
-        for (final QueuedEvent queuedEvent : QUEUE) {
-            final Object target = queuedEvent.receiver.getTarget();
-            if (target == receiver) {
-                final Object eventObj = queuedEvent.event;
-                if (eventObj instanceof Event) {
-                    final Event event = (Event) eventObj;
-                    if (event.getId() == eventId && !event.isCanceled) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
     private static class QueuedEvent {
 
         final EventReceiver receiver;
