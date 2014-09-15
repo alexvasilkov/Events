@@ -15,42 +15,52 @@ import java.lang.annotation.ElementType;
  * 1. Purpose, usage examples
  * 2. javadocs
  */
-public class Events {
+public final class Events {
 
     static boolean isDebug = false;
     static Context appContext;
 
+    private Events() {
+    }
+
     /**
      * Stores application context. It will be used to get events name by ids (if event id is Android id resource).
      */
-    public static void setAppContext(Context context) {
+    public static void setAppContext(final Context context) {
         appContext = context.getApplicationContext();
     }
 
-    public static void setDebug(boolean isDebug) {
+    public static void setDebug(final boolean isDebug) {
         Events.isDebug = isDebug;
     }
 
-    public static void setErrorHandler(EventsErrorHandler handler) {
+    public static void setErrorHandler(final EventsErrorHandler handler) {
         EventsDispatcher.setErrorHandler(handler);
     }
 
-    public static void register(Object receiver) {
-        EventsDispatcher.register(receiver, true);
+    public static void register(final Object receiver) {
+        EventsDispatcher.register(receiver, true, null, null);
     }
 
-    public static void unregister(Object receiver) {
+    public static void unregister(final Object receiver) {
         EventsDispatcher.unregister(receiver);
     }
 
-    public static Event.Builder create(int eventId) {
+    public static Event.Builder create(final String eventId) {
+        return create(Utils.convertKeyToId(eventId));
+    }
+
+    public static Event.Builder create(final int eventId) {
         return new Event.Builder(eventId);
     }
 
-    public static Event post(int eventId) {
-        return new Event.Builder(eventId).post();
+    public static Event post(final String eventId) {
+        return post(Utils.convertKeyToId(eventId));
     }
 
+    public static Event post(final int eventId) {
+        return new Event.Builder(eventId).post();
+    }
 
     /**
      * Methods marked with this annotation will receive events in the main thread.
@@ -62,11 +72,16 @@ public class Events {
      * but you can't mix them with other handlers marked as
      * {@link com.alexvasilkov.events.Events.AsyncMethod} or
      * {@link com.alexvasilkov.events.Events.UiMethod}.
+     * <p/>
+     * You can set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Receiver {
-        int[] value();
+
+        int[] value() default {};
+
+        String[] key() default {};
     }
 
     /**
@@ -77,11 +92,16 @@ public class Events {
      * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface AsyncMethod {
-        int value();
+
+        int value() default 0;
+
+        String key() default "";
     }
 
     /**
@@ -92,11 +112,16 @@ public class Events {
      * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface UiMethod {
-        int value();
+
+        int value() default 0;
+
+        String key() default "";
     }
 
     /**
@@ -112,17 +137,22 @@ public class Events {
      * Method {@link EventCallback#getError()} can be used to retrieve the error.
      * <li/>{@link com.alexvasilkov.events.EventCallback.Status#FINISHED}
      * </ul>
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Callback {
-        int value();
+
+        int value() default 0;
+
+        String key() default "";
     }
 
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Cache {
+
         Class<? extends CacheProvider> value();
     }
-
 }

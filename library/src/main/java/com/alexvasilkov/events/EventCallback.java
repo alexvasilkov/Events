@@ -2,19 +2,19 @@ package com.alexvasilkov.events;
 
 public class EventCallback {
 
-    static EventCallback started(Event event) {
+    static EventCallback started(final Event event) {
         return new EventCallback(event, null, null, Status.STARTED);
     }
 
-    static EventCallback result(Event event, Object[] result) {
+    static EventCallback result(final Event event, final Object[] result) {
         return new EventCallback(event, result, null, Status.RESULT);
     }
 
-    static EventCallback error(Event event, Throwable error) {
+    static EventCallback error(final Event event, final Throwable error) {
         return new EventCallback(event, null, error, Status.ERROR);
     }
 
-    static EventCallback finished(Event event) {
+    static EventCallback finished(final Event event) {
         return new EventCallback(event, null, null, Status.FINISHED);
     }
 
@@ -26,7 +26,7 @@ public class EventCallback {
 
     private boolean isErrorHandled;
 
-    private EventCallback(Event event, Object[] result, Throwable error, Status status) {
+    private EventCallback(final Event event, final Object[] result, final Throwable error, final Status status) {
         this.id = event.getId();
         this.result = result;
         this.event = event;
@@ -47,7 +47,7 @@ public class EventCallback {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getResult(int index) {
+    public <T> T getResult(final int index) {
         return result == null || result.length <= index ? null : (T) result[index];
     }
 
@@ -77,19 +77,20 @@ public class EventCallback {
 
 
     public void markErrorAsHandled() {
-        if (status != Status.ERROR)
+        if (status != Status.ERROR) {
             throw new RuntimeException("Cannot markErrorAsHandled for non-ERROR callbacks");
+        }
         isErrorHandled = true;
     }
 
     public boolean isErrorHandled() {
-        if (status != Status.ERROR)
+        if (status != Status.ERROR) {
             throw new RuntimeException("Method isErrorHandled does not make sense for non-ERROR callbacks");
+        }
         return isErrorHandled;
     }
 
-    public static enum Status {
+    public enum Status {
         STARTED, RESULT, ERROR, FINISHED
     }
-
 }

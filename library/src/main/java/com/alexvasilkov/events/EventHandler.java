@@ -15,7 +15,7 @@ class EventHandler {
     private final int eventId;
     private final CacheProvider cache;
 
-    EventHandler(Method method, Type type, int eventId, CacheProvider cache) {
+    EventHandler(final Method method, final Type type, final int eventId, final CacheProvider cache) {
         this.method = method;
         this.type = type;
         this.eventId = eventId;
@@ -31,31 +31,34 @@ class EventHandler {
     }
 
 
-    void handle(Object target, Object parameter) {
+    void handle(final Object target, final Object parameter) {
         boolean isCacheUsed = false;
         Throwable error = null;
-        Object result = null;
 
         if (cache != null) {
             // Asking cache provider for cached result
             try {
                 isCacheUsed = cache.loadFromCache((Event) parameter);
-                if (Events.isDebug)
+                if (Events.isDebug) {
                     Log.d(TAG, "Cached value for event " + Utils.getName(eventId) + " is used = " + isCacheUsed);
-            } catch (Throwable e) {
+                }
+            }
+            catch (final Throwable e) {
                 error = e;
             }
         }
 
+        Object result = null;
         if (!isCacheUsed && error == null) {
             // Calling actual handler method
             try {
                 result = method.invoke(target, parameter);
-            } catch (InvocationTargetException e) {
+            }
+            catch (final InvocationTargetException e) {
                 error = e.getTargetException();
-            } catch (Exception e) {
-                Log.e(TAG, "Cannot handle event " + Utils.getName(eventId)
-                        + " using method " + method.getName() + ": " + e.getMessage());
+            }
+            catch (final Exception e) {
+                Log.e(TAG, "Cannot handle event " + Utils.getName(eventId) + " using method " + method.getName() + ": " + e.getMessage());
             }
         }
 
@@ -63,22 +66,35 @@ class EventHandler {
             // Storing result in cache
             try {
                 cache.saveToCache((Event) parameter, result);
-            } catch (Throwable e) {
+            }
+            catch (final Throwable e) {
                 error = e;
                 result = null; // Ignoring result, cache fix is need
             }
         }
 
         if (type.isMethod()) {
-            Event event = (Event) parameter;
-            if (result != null) EventsDispatcher.sendResult(event, new Object[]{result});
-            if (error != null) EventsDispatcher.sendError(event, error);
-            if (!event.isPostponed) EventsDispatcher.sendFinished(event);
+            final Event event = (Event) parameter;
+            if (error == null) {
+                if (event.isPostponed) {
+                    if (result != null) {
+                        EventsDispatcher.sendResult(event, new Object[]{result});
+                    }
+                } else {
+                    if (result == null) {
+                        EventsDispatcher.sendFinished(event);
+                    } else {
+                        EventsDispatcher.sendResultAndFinish(event, new Object[]{result});
+                    }
+                }
+            } else {
+                EventsDispatcher.sendError(event, error);
+            }
         }
     }
 
 
-    static enum Type {
+    enum Type {
         RECEIVER, METHOD_ASYNC, METHOD_UI, CALLBACK;
 
         boolean isCallback() {
@@ -93,5 +109,4 @@ class EventHandler {
             return this == METHOD_ASYNC;
         }
     }
-
 }

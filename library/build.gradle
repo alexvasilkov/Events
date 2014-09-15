@@ -1,10 +1,5 @@
-buildscript {
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.10.+'
-    }
-}
-
-apply plugin: 'android'
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion Integer.parseInt(ANDROID_COMPILE_SDK)
@@ -19,4 +14,4 @@ android {
 }
 
 // New version can be uploaded with 'gradlew clean :library:jar :library:uploadArchives'
-apply from: 'gradle-mvn-push.gradle'
+//apply from: 'gradle-mvn-push.gradle'
