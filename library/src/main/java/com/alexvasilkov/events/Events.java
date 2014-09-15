@@ -73,7 +73,7 @@ public final class Events {
      * {@link com.alexvasilkov.events.Events.AsyncMethod} or
      * {@link com.alexvasilkov.events.Events.UiMethod}.
      * <p/>
-     * You can set both value and key parameters. 0 and "" values are illegal.
+     * You <b>can't</b> set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -81,7 +81,7 @@ public final class Events {
 
         int[] value() default {};
 
-        String[] key() default {};
+        String[] keys() default {};
     }
 
     /**

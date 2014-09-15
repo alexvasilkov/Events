@@ -55,16 +55,29 @@ final class EventHandlerUtils {
                     m.setAccessible(true);
 
                     final int[] ids = m.getAnnotation(Events.Receiver.class).value();
+                    boolean hasData = false;
                     if (ids != null) {
+                        if (ids.length > 0) {
+                            hasData = true;
+                        }
                         for (final int id : ids) {
-                            list.add(new EventHandler(m, EventHandler.Type.RECEIVER, id, null));
+                            list.add(new EventHandler(m, EventHandler.Type.RECEIVER, getRealIdFromIdOrKey(id, ""), null));
                         }
                     }
-                    final String[] keys = m.getAnnotation(Events.Receiver.class).key();
+                    final String[] keys = m.getAnnotation(Events.Receiver.class).keys();
                     if (keys != null) {
-                        for (final String key : keys) {
-                            list.add(new EventHandler(m, EventHandler.Type.RECEIVER, Utils.convertKeyToId(key), null));
+                        if (hasData) {
+                            throw new RuntimeException("You can't set both ids and keys in " + m.getName());
                         }
+                        if (keys.length > 0) {
+                            hasData = true;
+                        }
+                        for (final String key : keys) {
+                            list.add(new EventHandler(m, EventHandler.Type.RECEIVER, getRealIdFromIdOrKey(0, key), null));
+                        }
+                    }
+                    if (!hasData) {
+                        throw new RuntimeException("You should set at least one id or key in " + m.getName());
                     }
                 } else if (m.isAnnotationPresent(Events.AsyncMethod.class)) {
                     if (Events.isDebug) {
