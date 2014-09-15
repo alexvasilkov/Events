@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -19,7 +17,6 @@ public final class EventsActivity {
 
     private static final String EXTRA_EVENTS_UID = "com.alexvasilkov.events.EventsActivity.EXTRA_EVENTS_UID";
 
-    private static final List<String> USED_UID_LIST = new LinkedList<String>();
     private static final Map<Activity, String> ACTIVITY_UIDS_LIST = new HashMap<Activity, String>();
 
     private EventsActivity() {
@@ -38,25 +35,13 @@ public final class EventsActivity {
             }
         }
 
-        if (!activity.isFinishing()) {
-            ACTIVITY_UIDS_LIST.put(activity, uid);
-            EventsDispatcher.register(activity, false, uid, false);
-        }
-    }
-
-    public static void onStart(final Activity activity) {
-        checkActivity(activity);
-        performResume(activity);
+        ACTIVITY_UIDS_LIST.put(activity, uid);
+        EventsDispatcher.register(activity, false, uid, false);
     }
 
     public static void onResume(final Activity activity) {
         checkActivity(activity);
-        performResume(activity);
-    }
-
-    public static void onStartNewActivity(final Activity activity) {
-        checkActivity(activity);
-        performPause(activity);
+        EventsDispatcher.resume(activity);
     }
 
     public static void onSaveInstanceState(final Activity activity, final Bundle outState) {
@@ -65,42 +50,17 @@ public final class EventsActivity {
             throw new NullPointerException("saveState can't be null");
         }
         outState.putString(EXTRA_EVENTS_UID, getActivityUid(activity));
-        performPause(activity);
-    }
-
-    public static void onPause(final Activity activity) {
-        checkActivity(activity);
-        performPause(activity);
-    }
-
-    public static void onStop(final Activity activity) {
-        checkActivity(activity);
-        performPause(activity);
+        EventsDispatcher.pause(activity, getActivityUid(activity));
     }
 
     public static void onDestroy(final Activity activity) {
         checkActivity(activity);
-        performPause(activity);
-        ACTIVITY_UIDS_LIST.remove(activity);
-    }
-
-    public static void onFinish(final Activity activity) {
-        checkActivity(activity);
-        EventsDispatcher.unregister(activity);
-        removeUidFromUsed(getActivityUid(activity));
-        ACTIVITY_UIDS_LIST.remove(activity);
-    }
-
-    private static void performResume(final Activity activity) {
-        if (!activity.isFinishing()) {
-            EventsDispatcher.resume(activity);
-        }
-    }
-
-    private static void performPause(final Activity activity) {
-        if (!activity.isFinishing()) {
+        if (activity.isFinishing()) {
+            EventsDispatcher.unregister(activity);
+        } else {
             EventsDispatcher.pause(activity, getActivityUid(activity));
         }
+        ACTIVITY_UIDS_LIST.remove(activity);
     }
 
     private static String getActivityUid(final Activity activity) {
@@ -119,15 +79,6 @@ public final class EventsActivity {
     }
 
     static String generateUid() {
-        String result;
-        do {
-            result = UUID.randomUUID().toString();
-        } while (USED_UID_LIST.contains(result));
-        USED_UID_LIST.add(result);
-        return result;
-    }
-
-    static void removeUidFromUsed(final String uid) {
-        USED_UID_LIST.remove(uid);
+        return UUID.randomUUID().toString();
     }
 }
