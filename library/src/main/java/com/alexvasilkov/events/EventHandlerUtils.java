@@ -47,57 +47,60 @@ final class EventHandlerUtils {
         final Method[] methods = clazz.getDeclaredMethods();
         if (methods != null) {
             for (final Method m : methods) {
-                if (m.isAnnotationPresent(Events.Receiver.class) || m.isAnnotationPresent(Events.ReceiverLibrary.class)) {
+                if (m.isAnnotationPresent(Events.Receiver.class)) {
                     if (Events.isDebug) {
                         Log.d(TAG, "Events.Receiver method detected: " + clazz.getSimpleName() + "#" + m.getName());
                     }
                     checkMethodParams(m, Event.class);
                     m.setAccessible(true);
 
-                    final int[] ids = m.isAnnotationPresent(Events.ReceiverLibrary.class) ? convertNameToIds(m.getAnnotation(Events.ReceiverLibrary
-                            .class).value()) : m.getAnnotation(Events.Receiver.class).value();
+                    final int[] ids = m.getAnnotation(Events.Receiver.class).value();
                     if (ids != null) {
                         for (final int id : ids) {
                             list.add(new EventHandler(m, EventHandler.Type.RECEIVER, id, null));
                         }
                     }
-
-                } else if (m.isAnnotationPresent(Events.AsyncMethod.class) || m.isAnnotationPresent(Events.AsyncLibraryMethod.class)) {
+                    final String[] keys = m.getAnnotation(Events.Receiver.class).key();
+                    if (keys != null) {
+                        for (final String key : keys) {
+                            list.add(new EventHandler(m, EventHandler.Type.RECEIVER, Utils.convertKeyToId(key), null));
+                        }
+                    }
+                } else if (m.isAnnotationPresent(Events.AsyncMethod.class)) {
                     if (Events.isDebug) {
                         Log.d(TAG, "Events.AsyncMethod method detected: " + clazz.getSimpleName() + "#" + m.getName());
                     }
                     checkMethodParams(m, Event.class);
                     m.setAccessible(true);
 
-                    final int id = m.isAnnotationPresent(Events.AsyncLibraryMethod.class) ?
-                            Utils.convertNameToId(m.getAnnotation(Events.AsyncLibraryMethod.class).value()) : m.getAnnotation(Events.AsyncMethod
-                            .class).value();
-                    list.add(new EventHandler(m, EventHandler.Type.METHOD_ASYNC, id, getCacheProvider(m)));
+                    final int realId =
+                            getRealIdFromIdOrKey(m.getAnnotation(Events.AsyncMethod.class).value(), m.getAnnotation(Events.AsyncMethod.class).key());
 
-                } else if (m.isAnnotationPresent(Events.UiMethod.class) || m.isAnnotationPresent(Events.UiLibraryMethod.class)) {
+                    list.add(new EventHandler(m, EventHandler.Type.METHOD_ASYNC, realId, getCacheProvider(m)));
+
+                } else if (m.isAnnotationPresent(Events.UiMethod.class)) {
                     if (Events.isDebug) {
                         Log.d(TAG, "Events.UiMethod method detected: " + clazz.getSimpleName() + "#" + m.getName());
                     }
                     checkMethodParams(m, Event.class);
                     m.setAccessible(true);
 
-                    final int id = m.isAnnotationPresent(Events.UiLibraryMethod.class) ?
-                            Utils.convertNameToId(m.getAnnotation(Events.UiLibraryMethod.class).value()) : m.getAnnotation(Events.UiMethod
-                            .class).value();
-                    list.add(new EventHandler(m, EventHandler.Type.METHOD_UI, id, getCacheProvider(m)));
+                    final int realId =
+                            getRealIdFromIdOrKey(m.getAnnotation(Events.UiMethod.class).value(), m.getAnnotation(Events.UiMethod.class).key());
 
-                } else if (m.isAnnotationPresent(Events.Callback.class) || m.isAnnotationPresent(Events.CallbackLibrary.class)) {
+                    list.add(new EventHandler(m, EventHandler.Type.METHOD_UI, realId, getCacheProvider(m)));
+
+                } else if (m.isAnnotationPresent(Events.Callback.class)) {
                     if (Events.isDebug) {
                         Log.d(TAG, "Events.Callback method detected: " + clazz.getSimpleName() + "#" + m.getName());
                     }
                     checkMethodParams(m, EventCallback.class);
                     m.setAccessible(true);
 
-                    final int id = m.isAnnotationPresent(Events.CallbackLibrary.class) ?
-                            Utils.convertNameToId(m.getAnnotation(Events.CallbackLibrary.class).value()) : m.getAnnotation(Events.Callback
-                            .class).value();
-                    list.add(new EventHandler(m, EventHandler.Type.CALLBACK, id, null));
+                    final int realId =
+                            getRealIdFromIdOrKey(m.getAnnotation(Events.Callback.class).value(), m.getAnnotation(Events.Callback.class).key());
 
+                    list.add(new EventHandler(m, EventHandler.Type.CALLBACK, realId, null));
                 }
 
                 //                if (Events.isDebug) Log.d(TAG, "Parsing method: " + clazz.getName() + "#" + m.getName());
@@ -106,6 +109,18 @@ final class EventHandlerUtils {
 
         if (clazz.getSuperclass() != null) {
             collectMethods(clazz.getSuperclass(), list);
+        }
+    }
+
+    private static int getRealIdFromIdOrKey(final int id, final String key) {
+        if (id == 0 && "".equalsIgnoreCase(key)) {
+            throw new IllegalArgumentException("you should set id or key value here");
+        } else if (id != 0 && !"".equalsIgnoreCase(key)) {
+            throw new IllegalArgumentException("you should NOT set both id and key values here");
+        } else if (id == 0) {
+            return Utils.convertKeyToId(key);
+        } else {
+            return id;
         }
     }
 
@@ -153,20 +168,4 @@ final class EventHandlerUtils {
             throw new RuntimeException("Method " + method.getName() + " should have parameters: (" + paramsBuilder.toString() + ")");
         }
     }
-
-    private static int[] convertNameToIds(final String[] strings) {
-        if (null == strings) {
-            return null;
-        }
-        final int stringLength = strings.length;
-        final int[] result = new int[stringLength];
-
-        for (int i = 0; i < stringLength; ++i) {
-            result[i] = Utils.convertNameToId(strings[i]);
-        }
-
-        return result;
-    }
-
-
 }

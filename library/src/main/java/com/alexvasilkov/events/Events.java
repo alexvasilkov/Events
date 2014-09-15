@@ -39,19 +39,7 @@ public final class Events {
     }
 
     public static void register(final Object receiver) {
-        EventsDispatcher.register(receiver, true, null);
-    }
-
-    public static void registerWithPause(final Object receiver, final String receiverId) {
-        EventsDispatcher.register(receiver, false, receiverId);
-    }
-
-    public static void pause(final Object receiver, final String receiverId) {
-        EventsDispatcher.pause(receiver, receiverId);
-    }
-
-    public static void resume(final Object receiver) {
-        EventsDispatcher.resume(receiver);
+        EventsDispatcher.register(receiver, true, null, null);
     }
 
     public static void unregister(final Object receiver) {
@@ -59,7 +47,7 @@ public final class Events {
     }
 
     public static Event.Builder create(final String eventId) {
-        return create(Utils.convertNameToId(eventId));
+        return create(Utils.convertKeyToId(eventId));
     }
 
     public static Event.Builder create(final int eventId) {
@@ -67,21 +55,13 @@ public final class Events {
     }
 
     public static Event post(final String eventId) {
-        return post(Utils.convertNameToId(eventId));
+        return post(Utils.convertKeyToId(eventId));
     }
 
     public static Event post(final int eventId) {
         return new Event.Builder(eventId).post();
     }
 
-    public static boolean hasEvent(final Object receiver, final String eventId) {
-        return hasEvent(receiver, Utils.convertNameToId(eventId));
-    }
-
-    public static boolean hasEvent(final Object receiver, final int eventId) {
-        return null != EventsDispatcher.getEvent(receiver, eventId);
-    }
-
     /**
      * Methods marked with this annotation will receive events in the main thread.
      * <p/>
@@ -92,12 +72,16 @@ public final class Events {
      * but you can't mix them with other handlers marked as
      * {@link com.alexvasilkov.events.Events.AsyncMethod} or
      * {@link com.alexvasilkov.events.Events.UiMethod}.
+     * <p/>
+     * You can set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Receiver {
 
-        int[] value();
+        int[] value() default {};
+
+        String[] key() default {};
     }
 
     /**
@@ -108,12 +92,16 @@ public final class Events {
      * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface AsyncMethod {
 
-        int value();
+        int value() default 0;
+
+        String key() default "";
     }
 
     /**
@@ -124,12 +112,16 @@ public final class Events {
      * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
      * <p/>
      * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface UiMethod {
 
-        int value();
+        int value() default 0;
+
+        String key() default "";
     }
 
     /**
@@ -145,83 +137,16 @@ public final class Events {
      * Method {@link EventCallback#getError()} can be used to retrieve the error.
      * <li/>{@link com.alexvasilkov.events.EventCallback.Status#FINISHED}
      * </ul>
+     * <p/>
+     * You <b>can't</b> set both value and key parameters.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Callback {
 
-        int value();
-    }
+        int value() default 0;
 
-    /**
-     * Methods marked with this annotation will receive events in the main thread.
-     * <p/>
-     * Unlike {@link com.alexvasilkov.events.Events.AsyncMethod} and
-     * {@link com.alexvasilkov.events.Events.UiMethod} annotations no callbacks will be send back.
-     * <p/>
-     * <b>Note</b>: for each event id there can be any number of handlers marked with this annotation,
-     * but you can't mix them with other handlers marked as
-     * {@link com.alexvasilkov.events.Events.AsyncMethod} or
-     * {@link com.alexvasilkov.events.Events.UiMethod}.
-     */
-    @java.lang.annotation.Target({ElementType.METHOD})
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    public @interface ReceiverLibrary {
-
-        String[] value();
-    }
-
-    /**
-     * Methods marked with this annotation will receive events in <b>background thread</b>.
-     * <p/>
-     * <b>Note</b>: for each event id you can use only one method marked with this annotation. You also cannot use other
-     * handlers marked as {@link com.alexvasilkov.events.Events.UiMethod} or
-     * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
-     * <p/>
-     * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
-     */
-    @java.lang.annotation.Target({ElementType.METHOD})
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    public @interface AsyncLibraryMethod {
-
-        String value();
-    }
-
-    /**
-     * Methods marked with this annotation will receive events in <b>main thread</b>.
-     * <p/>
-     * <b>Note</b>: for each event id you can use only one method marked with this annotation. You also cannot use other
-     * handlers marked as {@link com.alexvasilkov.events.Events.AsyncMethod} or
-     * {@link com.alexvasilkov.events.Events.Receiver} for this event id.
-     * <p/>
-     * See also {@link com.alexvasilkov.events.Events.Callback} annotation.
-     */
-    @java.lang.annotation.Target({ElementType.METHOD})
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    public @interface UiLibraryMethod {
-
-        String value();
-    }
-
-    /**
-     * Methods marked with this annotation will receive callbacks from execution method (marked with
-     * {@link com.alexvasilkov.events.Events.AsyncMethod} or
-     * {@link com.alexvasilkov.events.Events.UiMethod} annotation) with statuses:
-     * <ul>
-     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#STARTED}
-     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#RESULT}<br/>
-     * Methods {@link EventCallback#getResult()} and {@link EventCallback#getResult(int)} can be used
-     * to retrieve the result
-     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#ERROR}<br/>
-     * Method {@link EventCallback#getError()} can be used to retrieve the error.
-     * <li/>{@link com.alexvasilkov.events.EventCallback.Status#FINISHED}
-     * </ul>
-     */
-    @java.lang.annotation.Target({ElementType.METHOD})
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    public @interface CallbackLibrary {
-
-        String value();
+        String key() default "";
     }
 
     @java.lang.annotation.Target({ElementType.METHOD})
@@ -230,5 +155,4 @@ public final class Events {
 
         Class<? extends CacheProvider> value();
     }
-
 }

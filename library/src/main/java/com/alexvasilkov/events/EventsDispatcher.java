@@ -69,7 +69,7 @@ final class EventsDispatcher {
         errorHandler = handler;
     }
 
-    static void register(final Object target, final boolean keepStrongReference, final String targetId) {
+    static void register(final Object target, final boolean keepStrongReference, final String targetId, final Boolean markAsResumed) {
         if (target == null) {
             throw new NullPointerException("Target cannot be null");
         }
@@ -103,9 +103,18 @@ final class EventsDispatcher {
         } else {
             receiver = eventReceiver;
             receiver.setTarget(target);
-            receiver.markAsResumed();
             if (Events.isDebug) {
-                Log.d(TAG, "Receiver marked as resumed!: " + Utils.getClassName(target));
+                Log.d(TAG, "Found old receiver: " + Utils.getClassName(target));
+            }
+        }
+        if (null != markAsResumed) {
+            if (markAsResumed) {
+                receiver.markAsResumed();
+                if (Events.isDebug) {
+                    Log.d(TAG, "Receiver marked as resumed!: " + Utils.getClassName(target));
+                }
+            } else {
+                receiver.markAsPaused();
             }
         }
         notifyStickyEvents(receiver);

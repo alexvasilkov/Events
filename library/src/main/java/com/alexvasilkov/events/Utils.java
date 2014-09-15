@@ -26,7 +26,7 @@ final class Utils {
         return obj == null ? "null" : obj.getClass().getSimpleName();
     }
 
-    static int convertNameToId(final String str) {
+    static int convertKeyToId(final String str) {
         if (null == str) {
             throw new RuntimeException("null string keys are not acceptable");
         }
