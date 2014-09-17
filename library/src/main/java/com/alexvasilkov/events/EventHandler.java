@@ -88,6 +88,7 @@ class EventHandler {
                     }
                 }
             } else {
+                EventsDispatcher.sendFinished(event);
                 EventsDispatcher.sendError(event, error);
             }
         }
