@@ -62,6 +62,22 @@ public final class Events {
         return new Event.Builder(eventId).post();
     }
 
+    public static Event postTo(final String eventId, final Object receiver) {
+        return postTo(Utils.convertKeyToId(eventId), receiver);
+    }
+
+    public static Event postTo(final int eventId, final Object receiver) {
+        return new Event.Builder(eventId).postTo(receiver);
+    }
+
+    public static Event postSingleEvent(final String eventId) {
+        return postSingleEvent(Utils.convertKeyToId(eventId));
+    }
+
+    public static Event postSingleEvent(final int eventId) {
+        return new Event.Builder(eventId).postSingleEvent();
+    }
+
     /**
      * Methods marked with this annotation will receive events in the main thread.
      * <p/>

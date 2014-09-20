@@ -7,6 +7,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.util.SparseArray;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,7 @@ final class EventsDispatcher {
     private static final ExecutorService ASYNC_EXECUTOR = Executors.newCachedThreadPool();
 
     private static final SparseArray<List<Event>> STARTED_EVENTS = new SparseArray<List<Event>>();
+    private static final SparseArray<List<Event>> SINGLE_EVENTS = new SparseArray<List<Event>>();
 
     private static final long MAX_TIME_IN_MAIN_THREAD = 10L;
     private static final long MESSAGE_DELAY = 10L;
@@ -203,6 +205,25 @@ final class EventsDispatcher {
     /**
      * This method should always be called from UI thread
      */
+    static void postSingleEventTo(final Event event, final Object receiver) {
+        event.isSingleEvent = true;
+        postEventTo(event, receiver);
+    }
+
+    /**
+     * This method should always be called from UI thread
+     */
+    static void postSingleEvent(final Event event) {
+        if (Looper.getMainLooper() != Looper.myLooper()) {
+            throw new IllegalStateException("This method can only be called on MainThread");
+        }
+        event.isSingleEvent = true;
+        postEvent(event);
+    }
+
+    /**
+     * This method should always be called from UI thread
+     */
     static void postEventTo(final Event event, final Object receiver) {
         if (null == receiver) {
             throw new NullPointerException("receiver can't be null");
@@ -237,6 +258,21 @@ final class EventsDispatcher {
 
         if (Events.isDebug) {
             Log.d(TAG, "Internal event post: " + Utils.getName(eventId));
+        }
+        if (event.isSingleEvent) {
+            List<Event> singleEventsWithId = SINGLE_EVENTS.get(eventId);
+            if (null != singleEventsWithId) {
+                for (final Event singleEvent : singleEventsWithId) {
+                    if (isSameEvent(event, singleEvent)) {
+                        return;
+                    }
+                }
+            }
+            if (null == singleEventsWithId) {
+                singleEventsWithId = new ArrayList<Event>();
+                SINGLE_EVENTS.put(eventId, singleEventsWithId);
+            }
+            singleEventsWithId.add(event);
         }
 
         for (final EventReceiver receiver : HANDLERS) {
@@ -273,6 +309,24 @@ final class EventsDispatcher {
         if (event.handlerType != null) {
             dispatchEvents();
         }
+    }
+
+    private static boolean isSameEvent(final Event event, final Event otherEvent) {
+        if (event.getId() != otherEvent.getId()) {
+            return false;
+        }
+        final int dataCount = event.getDataCount();
+        if (dataCount != otherEvent.getDataCount()) {
+            return false;
+        }
+        for (int i = 0; i < dataCount; ++i) {
+            final Object eventDataItem = event.getData(i);
+            final Object otherEventDataItem = otherEvent.getData(i);
+            if (null == eventDataItem ? otherEventDataItem != null : !eventDataItem.equals(otherEventDataItem)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void postCallback(final EventCallback callback) {
@@ -328,6 +382,13 @@ final class EventsDispatcher {
             // Removing finished event
             STARTED_EVENTS.get(eventId).remove(event);
             event.isFinished = true;
+
+            if (event.isSingleEvent) {
+                final List<Event> singleEventsWithId = SINGLE_EVENTS.get(eventId);
+                if (null != singleEventsWithId) {
+                    singleEventsWithId.remove(event);
+                }
+            }
         }
 
         for (final EventReceiver receiver : HANDLERS) {
