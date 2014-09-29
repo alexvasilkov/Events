@@ -21,6 +21,9 @@ public class Event {
     // after handler method is finished.
     boolean isPostponed;
 
+    // Whether event was posted. It will be performed only once. An other starts will skipped.
+    boolean isSingleEvent;
+
     Event(final int id, final Object[] data) {
         this.id = id;
         this.data = data;
@@ -100,6 +103,18 @@ public class Event {
         public Event postTo(final Object receiver) {
             final Event event = new Event(id, data);
             EventsDispatcher.postEventTo(event, receiver);
+            return event;
+        }
+
+        public Event postSingleEvent() {
+            final Event event = new Event(id, data);
+            EventsDispatcher.postSingleEvent(event);
+            return event;
+        }
+
+        public Event postSingleEventTo(final Object receiver) {
+            final Event event = new Event(id, data);
+            EventsDispatcher.postSingleEventTo(event, receiver);
             return event;
         }
     }

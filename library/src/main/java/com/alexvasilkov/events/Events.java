@@ -62,6 +62,22 @@ public final class Events {
         return new Event.Builder(eventId).post();
     }
 
+    public static Event postTo(final String eventId, final Object receiver) {
+        return postTo(Utils.convertKeyToId(eventId), receiver);
+    }
+
+    public static Event postTo(final int eventId, final Object receiver) {
+        return new Event.Builder(eventId).postTo(receiver);
+    }
+
+    public static Event postSingleEvent(final String eventId) {
+        return postSingleEvent(Utils.convertKeyToId(eventId));
+    }
+
+    public static Event postSingleEvent(final int eventId) {
+        return new Event.Builder(eventId).postSingleEvent();
+    }
+
     /**
      * Methods marked with this annotation will receive events in the main thread.
      * <p/>
@@ -73,7 +89,7 @@ public final class Events {
      * {@link com.alexvasilkov.events.Events.AsyncMethod} or
      * {@link com.alexvasilkov.events.Events.UiMethod}.
      * <p/>
-     * You can set both value and key parameters. 0 and "" values are illegal.
+     * You <b>can't</b> set both value and key parameters. 0 and "" values are illegal.
      */
     @java.lang.annotation.Target({ElementType.METHOD})
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
@@ -81,7 +97,7 @@ public final class Events {
 
         int[] value() default {};
 
-        String[] key() default {};
+        String[] keys() default {};
     }
 
     /**
