@@ -88,8 +88,11 @@ class EventHandler {
                     }
                 }
             } else {
-                EventsDispatcher.sendFinished(event);
-                EventsDispatcher.sendError(event, error);
+                if (event.isPostponed) {
+                    EventsDispatcher.sendError(event, error);
+                } else {
+                    EventsDispatcher.sendErrorAndFinished(event, error);
+                }
             }
         }
     }
