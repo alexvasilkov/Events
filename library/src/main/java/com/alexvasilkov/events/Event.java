@@ -95,12 +95,14 @@ public class Event {
             return this;
         }
 
-        public void single() {
+        public Builder single() {
             single = true;
+            return this;
         }
 
-        public void single(final boolean single) {
+        public Builder single(final boolean single) {
             this.single = single;
+            return this;
         }
 
         public Event post() {
