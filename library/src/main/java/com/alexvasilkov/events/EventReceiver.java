@@ -8,13 +8,14 @@ class EventReceiver {
     private final Class<?> targetClass;
     private final LinkedList<EventHandler> methods;
     private final WeakReference<?> weakReference;
+    @SuppressWarnings("unused")
     private Object strongReference;
     private volatile boolean isUnregistered;
 
     EventReceiver(Object target, boolean keepStrongReference) {
         targetClass = target.getClass();
         methods = EventHandlerUtils.getMethodsFromClass(targetClass);
-        weakReference = new WeakReference<Object>(target);
+        weakReference = new WeakReference<>(target);
         strongReference = keepStrongReference ? target : null;
     }
 

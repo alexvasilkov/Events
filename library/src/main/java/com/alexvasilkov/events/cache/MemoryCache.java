@@ -4,28 +4,20 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+
 import com.alexvasilkov.events.Event;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class MemoryCache implements CacheProvider {
 
     public static final long NO_TIME_LIMIT = 0L;
-    private static final Map<String, CacheEntry> CACHE = new HashMap<String, CacheEntry>();
-    private static final Handler HANDLER = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-            synchronized (CACHE) {
-                long currentTime = SystemClock.uptimeMillis();
-                for (Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator(); iterator.hasNext(); ) {
-                    CacheEntry entry = iterator.next().getValue();
-                    if (entry.isClearExpired && entry.expires < currentTime) iterator.remove();
-                }
-            }
-        }
-    };
+    private static final Map<String, CacheEntry> CACHE = new HashMap<>();
+    private static final Handler HANDLER = new CacheHandler();
 
     private final long maxLifetime;
     private final boolean isClearExpired;
@@ -40,7 +32,7 @@ public class MemoryCache implements CacheProvider {
     }
 
     @Override
-    public boolean loadFromCache(Event event) {
+    public boolean loadFromCache(@NonNull Event event) {
         synchronized (CACHE) {
             CacheEntry entry = CACHE.get(toCacheKey(event));
             if (entry == null) return false;
@@ -52,7 +44,7 @@ public class MemoryCache implements CacheProvider {
     }
 
     @Override
-    public void saveToCache(Event event, Object result) {
+    public void saveToCache(@NonNull Event event, Object result) {
         synchronized (CACHE) {
             long expires = SystemClock.uptimeMillis() + maxLifetime;
             CACHE.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
@@ -60,7 +52,7 @@ public class MemoryCache implements CacheProvider {
         }
     }
 
-    protected String toCacheKey(Event event) {
+    protected String toCacheKey(@NonNull Event event) {
         StringBuilder builder = new StringBuilder();
         builder.append(event.getId());
 
@@ -81,6 +73,24 @@ public class MemoryCache implements CacheProvider {
             this.data = data;
             this.expires = expires;
             this.isClearExpired = isClearExpired;
+        }
+    }
+
+    private static class CacheHandler extends Handler {
+
+        public CacheHandler() {
+            super(Looper.getMainLooper());
+        }
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            synchronized (CACHE) {
+                long currentTime = SystemClock.uptimeMillis();
+                for (Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator(); iterator.hasNext(); ) {
+                    CacheEntry entry = iterator.next().getValue();
+                    if (entry.isClearExpired && entry.expires < currentTime) iterator.remove();
+                }
+            }
         }
     }
 

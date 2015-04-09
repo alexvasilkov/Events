@@ -76,6 +76,7 @@ public class EventCallback {
     }
 
 
+    @SuppressWarnings("unused")
     public void markErrorAsHandled() {
         if (status != Status.ERROR)
             throw new RuntimeException("Cannot markErrorAsHandled for non-ERROR callbacks");
@@ -88,7 +89,7 @@ public class EventCallback {
         return isErrorHandled;
     }
 
-    public static enum Status {
+    public enum Status {
         STARTED, RESULT, ERROR, FINISHED
     }
 

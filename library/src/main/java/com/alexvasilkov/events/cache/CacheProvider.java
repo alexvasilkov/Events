@@ -1,11 +1,13 @@
 package com.alexvasilkov.events.cache;
 
+import android.support.annotation.NonNull;
+
 import com.alexvasilkov.events.Event;
 
 public interface CacheProvider {
 
-    boolean loadFromCache(Event event) throws Exception;
+    boolean loadFromCache(@NonNull Event event) throws Exception;
 
-    void saveToCache(Event event, Object result) throws Exception;
+    void saveToCache(@NonNull Event event, Object result) throws Exception;
 
 }

@@ -1,23 +1,20 @@
 package com.alexvasilkov.events;
 
-import android.content.res.Resources;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import java.lang.reflect.Method;
 
 class Utils {
 
-    static String getName(int resourceId) {
-        if (Events.appContext != null) {
-            try {
-                return Events.appContext.getResources().getResourceEntryName(resourceId);
-            } catch (Resources.NotFoundException e) {
-                // Returning id itself (below)
-            }
-        }
-
-        return String.valueOf(resourceId);
+    @NonNull
+    static String classToString(@Nullable Object obj) {
+        return obj == null ? "null" : obj.getClass().getSimpleName();
     }
 
-    static String getClassName(Object obj) {
-        return obj == null ? "null" : obj.getClass().getSimpleName();
+    @NonNull
+    static String methodToString(@NonNull Class<?> clazz, @NonNull Method m) {
+        return clazz.getSimpleName() + "#" + m.getName();
     }
 
     private Utils() {

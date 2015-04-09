@@ -1,6 +1,7 @@
 package com.alexvasilkov.events;
 
 import android.util.Log;
+
 import com.alexvasilkov.events.cache.CacheProvider;
 
 import java.lang.reflect.InvocationTargetException;
@@ -41,7 +42,8 @@ class EventHandler {
             try {
                 isCacheUsed = cache.loadFromCache((Event) parameter);
                 if (Events.isDebug)
-                    Log.d(TAG, "Cached value for event " + Utils.getName(eventId) + " is used = " + isCacheUsed);
+                    Log.d(TAG, "Cached value for event " + IdsUtils.toString(eventId)
+                            + " is used = " + isCacheUsed);
             } catch (Throwable e) {
                 error = e;
             }
@@ -54,7 +56,7 @@ class EventHandler {
             } catch (InvocationTargetException e) {
                 error = e.getTargetException();
             } catch (Exception e) {
-                Log.e(TAG, "Cannot handle event " + Utils.getName(eventId)
+                Log.e(TAG, "Cannot handle event " + IdsUtils.toString(eventId)
                         + " using method " + method.getName() + ": " + e.getMessage());
             }
         }
@@ -74,11 +76,13 @@ class EventHandler {
             if (result != null) EventsDispatcher.sendResult(event, new Object[]{result});
             if (error != null) EventsDispatcher.sendError(event, error);
             if (!event.isPostponed) EventsDispatcher.sendFinished(event);
+        } else {
+            if (error != null) throw new RuntimeException("Error handling event", error);
         }
     }
 
 
-    static enum Type {
+    enum Type {
         RECEIVER, METHOD_ASYNC, METHOD_UI, CALLBACK;
 
         boolean isCallback() {
