@@ -1,11 +1,10 @@
 buildscript {
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.10.+'
         classpath 'com.alexvasilkov:android-sign-release:0.3.6'
     }
 }
 
-apply plugin: 'android'
+apply plugin: 'com.android.application'
 apply plugin: 'android-sign-release'
 
 android {
@@ -35,4 +34,6 @@ android {
 
 dependencies {
     compile project(':library')
+
+    compile 'com.android.support:support-v4:21.0.0'
 }

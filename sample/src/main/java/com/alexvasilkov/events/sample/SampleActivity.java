@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
+
 import com.alexvasilkov.events.Event;
 import com.alexvasilkov.events.EventCallback;
 import com.alexvasilkov.events.Events;
@@ -22,6 +23,7 @@ public class SampleActivity extends Activity {
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
+
         Events.register(this);
 
         Events.post(R.id.event_1);
