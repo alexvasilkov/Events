@@ -75,7 +75,7 @@ public final class Events {
     }
 
     public static Event postSingleEvent(final int eventId) {
-        return new Event.Builder(eventId).postSingleEvent();
+        return new Event.Builder(eventId).single().post();
     }
 
     /**

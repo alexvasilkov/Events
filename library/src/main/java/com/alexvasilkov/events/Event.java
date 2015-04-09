@@ -84,6 +84,7 @@ public class Event {
 
         private final int id;
         private Object[] data;
+        private boolean single;
 
         Builder(final int id) {
             this.id = id;
@@ -94,29 +95,28 @@ public class Event {
             return this;
         }
 
+        public Builder single() {
+            single = true;
+            return this;
+        }
+
+        public Builder single(final boolean single) {
+            this.single = single;
+            return this;
+        }
+
         public Event post() {
             final Event event = new Event(id, data);
+            event.isSingleEvent = single;
             EventsDispatcher.postEvent(event);
             return event;
         }
 
         public Event postTo(final Object receiver) {
             final Event event = new Event(id, data);
+            event.isSingleEvent = single;
             EventsDispatcher.postEventTo(event, receiver);
             return event;
         }
-
-        public Event postSingleEvent() {
-            final Event event = new Event(id, data);
-            EventsDispatcher.postSingleEvent(event);
-            return event;
-        }
-
-        public Event postSingleEventTo(final Object receiver) {
-            final Event event = new Event(id, data);
-            EventsDispatcher.postSingleEventTo(event, receiver);
-            return event;
-        }
     }
-
 }

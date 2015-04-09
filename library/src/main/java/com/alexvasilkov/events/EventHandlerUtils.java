@@ -66,10 +66,10 @@ final class EventHandlerUtils {
                     }
                     final String[] keys = m.getAnnotation(Events.Receiver.class).keys();
                     if (keys != null) {
-                        if (hasData) {
-                            throw new RuntimeException("You can't set both ids and keys in " + m.getName());
-                        }
                         if (keys.length > 0) {
+                            if (hasData) {
+                                throw new RuntimeException("You can't set both ids and keys in " + m.getName());
+                            }
                             hasData = true;
                         }
                         for (final String key : keys) {

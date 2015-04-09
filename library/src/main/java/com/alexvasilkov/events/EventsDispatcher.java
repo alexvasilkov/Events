@@ -205,25 +205,6 @@ final class EventsDispatcher {
     /**
      * This method should always be called from UI thread
      */
-    static void postSingleEventTo(final Event event, final Object receiver) {
-        event.isSingleEvent = true;
-        postEventTo(event, receiver);
-    }
-
-    /**
-     * This method should always be called from UI thread
-     */
-    static void postSingleEvent(final Event event) {
-        if (Looper.getMainLooper() != Looper.myLooper()) {
-            throw new IllegalStateException("This method can only be called on MainThread");
-        }
-        event.isSingleEvent = true;
-        postEvent(event);
-    }
-
-    /**
-     * This method should always be called from UI thread
-     */
     static void postEventTo(final Event event, final Object receiver) {
         if (null == receiver) {
             throw new NullPointerException("receiver can't be null");
@@ -436,6 +417,10 @@ final class EventsDispatcher {
 
     static void sendFinished(final Event event) {
         postCallback(EventCallback.finished(event));
+    }
+
+    static void sendErrorAndFinished(final Event event, final Throwable error) {
+        postCallbacks(EventCallback.error(event, error), EventCallback.finished(event));
     }
 
     private static void notifyStickyEvents(final EventReceiver receiver) {
