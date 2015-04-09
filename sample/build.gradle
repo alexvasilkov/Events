@@ -1,20 +1,22 @@
 buildscript {
+    repositories {
+        jcenter()
+    }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.10.+'
-        classpath 'com.alexvasilkov:android-sign-release:0.3.6'
+        classpath 'com.alexvasilkov:android-sign-release:0.8.1'
     }
 }
 
-apply plugin: 'android'
-apply plugin: 'android-sign-release'
+apply plugin: 'com.android.application'
+apply plugin: 'com.alexvasilkov.sign'
 
 android {
-    compileSdkVersion Integer.parseInt(ANDROID_COMPILE_SDK)
-    buildToolsVersion ANDROID_BUILD_TOOLS_VERSION
+    compileSdkVersion 22
+    buildToolsVersion "22.0.1"
 
     defaultConfig {
-        minSdkVersion Integer.parseInt(ANDROID_MIN_SDK)
-        targetSdkVersion Integer.parseInt(ANDROID_TARGET_SDK)
+        minSdkVersion 15
+        targetSdkVersion 22
         versionCode Integer.parseInt(VERSION_CODE)
         versionName VERSION_NAME
     }
