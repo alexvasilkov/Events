@@ -1,11 +1,18 @@
 Events
 ======
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
+
 Advanced events bus implementation for Android
 
 #### Usage ####
 
 TODO
+
+Add dependency to your build.gradle file:
+
+    compile 'com.alexvasilkov:events:x.x.x'
+
 
 #### License ####
 
