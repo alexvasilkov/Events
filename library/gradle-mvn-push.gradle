@@ -97,8 +97,17 @@ afterEvaluate { project ->
     }
 
     task javadocs(type: Javadoc) {
-        source = android.sourceSets.main.java
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        source = android.sourceSets.main.java.sourceFiles
+        classpath = files(android.bootClasspath)
+
+
+        if (JavaVersion.current().isJava8Compatible()) {
+            allprojects {
+                tasks.withType(Javadoc) {
+                    options.addStringOption('Xdoclint:none', '-quiet')
+                }
+            }
+        }
     }
 
     task javadocsJar(type: Jar, dependsOn: javadocs) {
@@ -108,8 +117,9 @@ afterEvaluate { project ->
 
     task sourcesJar(type: Jar) {
         classifier = 'sources'
-        from android.sourceSets.main.java
+        from android.sourceSets.main.java.sourceFiles
     }
+
 
     artifacts {
         archives jar

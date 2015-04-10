@@ -59,11 +59,11 @@ public class Event {
 
 
     /**
-     * Sends {@link com.itslearning.core.logic.eventbus.EventCallback.Status#RESULT} callback.
+     * Sends {@link EventCallback.Status#RESULT} callback.
      * <p/>
      * You can only use this method with events received inside methods marked with
-     * {@link com.itslearning.core.logic.eventbus.Events.AsyncMethod} or
-     * {@link com.itslearning.core.logic.eventbus.Events.UiMethod} annotations.
+     * {@link Events.AsyncMethod} or
+     * {@link Events.UiMethod} annotations.
      */
     public void sendResult(Object... result) {
         EventsDispatcher.sendResult(this, result);
@@ -74,15 +74,15 @@ public class Event {
     }
 
     /**
-     * Sends {@link com.itslearning.core.logic.eventbus.EventCallback.Status#FINISHED} callback.
+     * Sends {@link EventCallback.Status#FINISHED} callback.
      * No further callbacks will be send after that.
      * <p/>
      * This is particularly useful after calling {@link #postpone()} method, since it will prevent event from being
      * automatically marked as finished.
      * <p/>
      * You can only use this method with events received inside methods marked with
-     * {@link com.itslearning.core.logic.eventbus.Events.AsyncMethod} or
-     * {@link com.itslearning.core.logic.eventbus.Events.UiMethod} annotations.
+     * {@link Events.AsyncMethod} or
+     * {@link Events.UiMethod} annotations.
      */
     public void finish() {
         EventsDispatcher.sendFinished(this);
