@@ -7,6 +7,7 @@ import android.os.SystemClock;
 import android.support.annotation.NonNull;
 
 import com.alexvasilkov.events.Event;
+import com.alexvasilkov.events.EventResult;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class MemoryCache implements CacheProvider {
 
     public static final long NO_TIME_LIMIT = 0L;
+
     private static final Map<String, CacheEntry> CACHE = new HashMap<>();
     private static final Handler HANDLER = new CacheHandler();
 
@@ -32,19 +34,15 @@ public class MemoryCache implements CacheProvider {
     }
 
     @Override
-    public boolean loadFromCache(@NonNull Event event) {
+    public EventResult loadFromCache(@NonNull Event event) {
         synchronized (CACHE) {
             CacheEntry entry = CACHE.get(toCacheKey(event));
-            if (entry == null) return false;
-
-            event.sendResult(entry.data);
-
-            return maxLifetime == NO_TIME_LIMIT || entry.expires > SystemClock.uptimeMillis();
+            return entry == null ? null : entry.result;
         }
     }
 
     @Override
-    public void saveToCache(@NonNull Event event, Object result) {
+    public void saveToCache(@NonNull Event event, EventResult result) {
         synchronized (CACHE) {
             long expires = SystemClock.uptimeMillis() + maxLifetime;
             CACHE.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
@@ -52,25 +50,33 @@ public class MemoryCache implements CacheProvider {
         }
     }
 
+    @Override
+    public boolean isCacheExpired(@NonNull Event event) throws Exception {
+        CacheEntry entry = CACHE.get(toCacheKey(event));
+
+        long now = SystemClock.uptimeMillis();
+        return entry == null || (maxLifetime != NO_TIME_LIMIT && entry.expires < now);
+    }
+
     protected String toCacheKey(@NonNull Event event) {
         StringBuilder builder = new StringBuilder();
         builder.append(event.getId());
 
-        int count = event.getDataCount();
+        int count = event.getParamsCount();
         for (int i = 0; i < count; i++) {
-            builder.append('_').append(event.getData(i));
+            builder.append('_').append(event.getParam(i));
         }
 
         return builder.toString();
     }
 
     private static class CacheEntry {
-        final Object data;
+        final EventResult result;
         final long expires;
         final boolean isClearExpired;
 
-        private CacheEntry(Object data, long expires, boolean isClearExpired) {
-            this.data = data;
+        private CacheEntry(EventResult result, long expires, boolean isClearExpired) {
+            this.result = result;
             this.expires = expires;
             this.isClearExpired = isClearExpired;
         }
@@ -85,10 +91,10 @@ public class MemoryCache implements CacheProvider {
         @Override
         public void handleMessage(@NonNull Message msg) {
             synchronized (CACHE) {
-                long currentTime = SystemClock.uptimeMillis();
+                long now = SystemClock.uptimeMillis();
                 for (Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator(); iterator.hasNext(); ) {
                     CacheEntry entry = iterator.next().getValue();
-                    if (entry.isClearExpired && entry.expires < currentTime) iterator.remove();
+                    if (entry.isClearExpired && entry.expires < now) iterator.remove();
                 }
             }
         }

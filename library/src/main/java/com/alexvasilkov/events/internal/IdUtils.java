@@ -1,21 +1,21 @@
-package com.alexvasilkov.events;
+package com.alexvasilkov.events.internal;
 
-import android.content.res.Resources;
-import android.util.Log;
 import android.util.SparseArray;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class IdsUtils {
+public class IdUtils {
+
+    public static final int NO_ID = 0;
 
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
 
     private static final Map<String, Integer> KEY_TO_ID_MAP = new HashMap<>();
     private static final SparseArray<String> ID_TO_KEY_MAP = new SparseArray<>();
 
-    static int fromKey(String key) {
+    public static int fromKey(String key) {
         if (key == null) throw new NullPointerException("Cannot generate id for null key");
 
         Integer id = KEY_TO_ID_MAP.get(key);
@@ -28,20 +28,8 @@ class IdsUtils {
         return id;
     }
 
-    static String toString(int id) {
-        String key = ID_TO_KEY_MAP.get(id);
-        if (key != null) return key;
-
-        if (Events.appContext != null) {
-            try {
-                return Events.appContext.getResources().getResourceEntryName(id);
-            } catch (Resources.NotFoundException e) {
-                if (Events.isDebug)
-                    Log.e(IdsUtils.class.getSimpleName(), "Can't find resource id name", e);
-            }
-        }
-
-        return String.valueOf(id);
+    public static String fromId(int id) {
+        return ID_TO_KEY_MAP.get(id);
     }
 
     /**
@@ -61,13 +49,14 @@ class IdsUtils {
         }
     }
 
-    static boolean isInvalidAndroidId(int id) {
+    public static boolean isInvalidAndroidId(int id) {
         // If the package id is 0x00 or 0x01, it's either an undefined package or a framework id
         // This check is taken from View.setTag(key, tag) method source.
         return (id >>> 24) < 2;
     }
 
-    private IdsUtils() {
+    private IdUtils() {
+        // No instances
     }
 
 }

@@ -1,28 +1,24 @@
 package com.alexvasilkov.events;
 
-public class Event {
+import android.support.annotation.IdRes;
+import android.support.annotation.NonNull;
+
+import com.alexvasilkov.events.internal.Dispatcher;
+import com.alexvasilkov.events.internal.EventBase;
+import com.alexvasilkov.events.internal.IdUtils;
+import com.alexvasilkov.events.internal.ListUtils;
+
+import java.util.List;
+
+public class Event extends EventBase {
 
     private final int id;
-    private final Object[] data;
-    private final Object[] tag;
+    private final Object[] params, tags;
 
-    EventHandler.Type handlerType;
-
-    // Whether "finished" callback was already sent and all subsequent callbacks should be ignored.
-    boolean isFinished;
-
-    // Whether event was canceled and all subsequent callbacks should be ignored,
-    // except "finished" callback which should be send immediately.
-    volatile boolean isCanceled;
-
-    // Whether event was postponed. Meaning no "finished" callback will be sent automatically
-    // after handler method is finished.
-    boolean isPostponed;
-
-    Event(int id, Object[] data, Object[] tag) {
+    protected Event(int id, Object[] params, Object[] tags) {
         this.id = id;
-        this.data = data;
-        this.tag = tag;
+        this.params = params;
+        this.tags = tags;
     }
 
     public int getId() {
@@ -30,99 +26,88 @@ public class Event {
     }
 
     /**
-     * Equivalent to getData(0)
+     * Returns value at {@code index} position and implicitly casts it to {@code T}.
+     * Returns {@code null} if there is no value for specified {@code index}.
      */
-    public <T> T getData() {
-        return getData(0);
+    public <T> T getParam(int index) {
+        return ListUtils.get(params, index);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getData(int index) {
-        return data == null || data.length <= index || index < 0 ? null : (T) data[index];
+    public int getParamsCount() {
+        return ListUtils.count(params);
     }
 
     /**
-     * Equivalent to getTag(0)
+     * Returns value at {@code index} position and implicitly casts it to {@code T}.
+     * Returns {@code null} if there is no value for specified {@code index}.
      */
-    public <T> T getTag() {
-        return getTag(0);
-    }
-
-    @SuppressWarnings("unchecked")
     public <T> T getTag(int index) {
-        return tag == null || tag.length <= index || index < 0 ? null : (T) tag[index];
+        return ListUtils.get(tags, index);
     }
 
-    public int getDataCount() {
-        return data == null ? 0 : data.length;
+    public int getTagsCount() {
+        return ListUtils.count(tags);
     }
 
 
     /**
-     * Sends {@link EventCallback.Status#RESULT} callback.
-     * <p/>
-     * You can only use this method with events received inside methods marked with
-     * {@link Events.AsyncMethod} or
-     * {@link Events.UiMethod} annotations.
+     * Schedules event to be passed to all available subscribers. See {@link Events.Subscribe}.
      */
-    public void sendResult(Object... result) {
-        EventsDispatcher.sendResult(this, result);
-    }
-
-    public void postpone() {
-        isPostponed = true;
+    public Event post() {
+        Dispatcher.postEvent(this);
+        return this;
     }
 
     /**
-     * Sends {@link EventCallback.Status#FINISHED} callback.
-     * No further callbacks will be send after that.
-     * <p/>
-     * This is particularly useful after calling {@link #postpone()} method, since it will prevent event from being
-     * automatically marked as finished.
-     * <p/>
-     * You can only use this method with events received inside methods marked with
-     * {@link Events.AsyncMethod} or
-     * {@link Events.UiMethod} annotations.
+     * Schedules event's {@code result} to be passed to all available subscribers.<br>
+     * This method should only be called inside of method marked with {@link Events.Subscribe}
+     * See {@link Events.Result}.
      */
-    public void finish() {
-        EventsDispatcher.sendFinished(this);
+    public Event postResult(EventResult result) {
+        Dispatcher.postEventResult(this, result);
+        return this;
     }
 
-    public void cancel() {
-        EventsDispatcher.cancelEvent(this);
+    /**
+     * Wraps given {@code params} as {@link EventResult} and passes them to
+     * {@link #postResult(EventResult)}.
+     */
+    public Event postResult(Object... params) {
+        return postResult(EventResult.builder().result(params).build());
     }
 
 
     public static class Builder {
 
         private final int id;
-        private Object[] data;
-        private Object[] tag;
+        private List<Object> params, tags;
 
-        Builder(int id) {
-            if (IdsUtils.isInvalidAndroidId(id))
-                throw new RuntimeException("Invalid event id: " + id + ", should be Android id");
+        Builder(@IdRes int id) {
+            if (IdUtils.isInvalidAndroidId(id))
+                throw new EventsException("Invalid event id: " + id + ", should be an Android id");
             this.id = id;
         }
 
-        Builder(String key) {
-            this.id = IdsUtils.fromKey(key);
+        Builder(@NonNull String key) {
+            this.id = IdUtils.fromKey(key);
         }
 
-        public Builder data(Object... data) {
-            this.data = data;
+        public Builder param(Object... params) {
+            this.params = ListUtils.append(this.params, params);
             return this;
         }
 
-        public Builder tag(Object... tag) {
-            this.tag = tag;
+        public Builder tag(Object... tags) {
+            this.tags = ListUtils.append(this.tags, tags);
             return this;
+        }
+
+        public Event build() {
+            return new Event(id, ListUtils.toArray(params), ListUtils.toArray(tags));
         }
 
         public Event post() {
-            Event event = new Event(id, data, tag);
-            EventsDispatcher.postEvent(event);
-            return event;
+            return build().post();
         }
 
     }
