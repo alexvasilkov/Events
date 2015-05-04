@@ -119,11 +119,12 @@ public class SampleActivity extends Activity {
     @Failure(TASK_3)
     private void onFail_3(EventFailure failure) {
         Log.d(TAG, "Failure 3", failure.getError());
+        failure.markAsHandled();
     }
 
     @Failure
     private void onFail(EventFailure failure) {
-        Log.d(TAG, "Failure general", failure.getError());
+        Log.d(TAG, "Failure general, handled: " + failure.isHandled(), failure.getError());
     }
 
 }
