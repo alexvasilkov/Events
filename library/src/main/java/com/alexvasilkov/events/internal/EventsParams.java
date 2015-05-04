@@ -2,24 +2,26 @@ package com.alexvasilkov.events.internal;
 
 import android.content.Context;
 
-public class Settings {
+public class EventsParams {
+
+    public static final String EMPTY_KEY = "com.alexvasilkov.events.internal#EMPTY";
 
     private static Context context;
     private static boolean debug;
 
     public static void setContext(Context context) {
-        Settings.context = context.getApplicationContext();
+        EventsParams.context = context;
     }
 
-    static Context getContext() {
+    public static Context getContext() {
         return context;
     }
 
     public static void setDebug(boolean debug) {
-        Settings.debug = debug;
+        EventsParams.debug = debug;
     }
 
-    static boolean isDebug() {
+    public static boolean isDebug() {
         return debug;
     }
 

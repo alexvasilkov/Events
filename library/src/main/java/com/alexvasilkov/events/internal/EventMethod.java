@@ -19,7 +19,7 @@ class EventMethod {
 
     final Method method;
     final Type type;
-    final int eventId;
+    final String eventKey;
 
     final boolean isBackground;
     final CacheProvider cache;
@@ -27,10 +27,10 @@ class EventMethod {
     final boolean hasReturnType;
     final Class<?>[] params;
 
-    EventMethod(Method method, Type type, int eventId, boolean isBackground, CacheProvider cache) {
+    EventMethod(Method method, Type type, String eventKey, boolean isBackground, CacheProvider cache) {
         this.method = method;
         this.type = type;
-        this.eventId = eventId;
+        this.eventKey = eventKey;
 
         this.isBackground = isBackground;
         this.cache = cache;
@@ -43,8 +43,8 @@ class EventMethod {
         check();
     }
 
-    EventMethod(Method method, Type type, int eventId) {
-        this(method, type, eventId, false, null);
+    EventMethod(Method method, Type type, String eventKey) {
+        this(method, type, eventKey, false, null);
     }
 
 
@@ -55,19 +55,19 @@ class EventMethod {
         // Only subscribers can have non-void return type
         if (hasReturnType && type != Type.SUBSCRIBE) {
             throw new EventsException(
-                    Utils.toLogStr(eventId, this, "Method can only have void return type"));
+                    Utils.toLogStr(eventKey, this, "Method can only have void return type"));
         }
 
         // Only subscribers can have cache
         if (cache != null && type != Type.SUBSCRIBE) {
             throw new EventsException(
-                    Utils.toLogStr(eventId, this, "Method cannot have cache"));
+                    Utils.toLogStr(eventKey, this, "Method cannot have cache"));
         }
 
         // Only subscribers can be executed in background
         if (isBackground && type != Type.SUBSCRIBE) {
             throw new EventsException(
-                    Utils.toLogStr(eventId, this, "Method cannot be executed in background"));
+                    Utils.toLogStr(eventKey, this, "Method cannot be executed in background"));
         }
     }
 
@@ -97,7 +97,7 @@ class EventMethod {
                 break;
             default:
                 throw new EventsException(
-                        Utils.toLogStr(eventId, this, "Unknown method type: " + type));
+                        Utils.toLogStr(eventKey, this, "Unknown method type: " + type));
         }
     }
 
@@ -140,7 +140,7 @@ class EventMethod {
 
         if (params.length == 0) {
             // Wrong []
-            throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+            throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
         } else if (params[0] == Event.class) {
             // [Event, ...?]
             if (args != null) args[0] = event;
@@ -150,7 +150,7 @@ class EventMethod {
                 if (args != null) args[1] = status;
             } else if (params.length > 1) {
                 // Wrong [Event, Unknown...]
-                throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
             }
             // Otherwise:
             // Detected [Event]
@@ -160,13 +160,13 @@ class EventMethod {
 
             if (params.length > 1) {
                 // Wrong [EventStatus, Unknown...]
-                throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
             }
             // Otherwise:
             // Detected [EventStatus]
         } else {
             // Wrong [Unknown...]
-            throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+            throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
         }
     }
 
@@ -187,7 +187,7 @@ class EventMethod {
 
                     if (params.length > 2) {
                         // Wrong [Event, EventResult, Results...]
-                        throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                        throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                     }
                     // Otherwise:
                     // Detected [Event, EventResult]
@@ -207,7 +207,7 @@ class EventMethod {
 
                 if (params.length > 1) {
                     // Wrong [EventResult, Results...]
-                    throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                 }
                 // Otherwise:
                 // Detected [EventResult]
@@ -244,11 +244,11 @@ class EventMethod {
                         if (args != null) args[1] = error;
                     } else {
                         // Wrong [Event, Unknown]
-                        throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                        throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                     }
                 } else if (params.length > 2) {
                     // Wrong [Event, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                 }
                 // Otherwise:
                 // Detected [Event]
@@ -258,7 +258,7 @@ class EventMethod {
 
                 if (params.length > 1) {
                     // Wrong [Throwable, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                 }
                 // Otherwise:
                 // Detected [Throwable]
@@ -268,13 +268,13 @@ class EventMethod {
 
                 if (params.length > 1) {
                     // Wrong [EventError, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                 }
                 // Otherwise:
                 // Detected [EventError]
             } else {
                 // Wrong [Unknown...]
-                throw new EventsException(Utils.toLogStr(eventId, this, MSG));
+                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
             }
         }
         // Otherwise:

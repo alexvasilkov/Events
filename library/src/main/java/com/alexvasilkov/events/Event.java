@@ -1,28 +1,27 @@
 package com.alexvasilkov.events;
 
-import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 
 import com.alexvasilkov.events.internal.Dispatcher;
 import com.alexvasilkov.events.internal.EventBase;
-import com.alexvasilkov.events.internal.IdUtils;
+import com.alexvasilkov.events.internal.EventsParams;
 import com.alexvasilkov.events.internal.ListUtils;
 
 import java.util.List;
 
 public class Event extends EventBase {
 
-    private final int id;
+    private final String key;
     private final Object[] params, tags;
 
-    protected Event(int id, Object[] params, Object[] tags) {
-        this.id = id;
+    protected Event(String key, Object[] params, Object[] tags) {
+        this.key = key;
         this.params = params;
         this.tags = tags;
     }
 
-    public int getId() {
-        return id;
+    public String getKey() {
+        return key;
     }
 
     /**
@@ -79,17 +78,14 @@ public class Event extends EventBase {
 
     public static class Builder {
 
-        private final int id;
+        private final String key;
         private List<Object> params, tags;
 
-        Builder(@IdRes int id) {
-            if (IdUtils.isInvalidAndroidId(id))
-                throw new EventsException("Invalid event id: " + id + ", should be an Android id");
-            this.id = id;
-        }
-
         Builder(@NonNull String key) {
-            this.id = IdUtils.fromKey(key);
+            if (EventsParams.EMPTY_KEY.equals(key))
+                throw new EventsException("Event key \"" + key + "\" is reserved and cannot be used");
+
+            this.key = key;
         }
 
         public Builder param(Object... params) {
@@ -103,7 +99,7 @@ public class Event extends EventBase {
         }
 
         public Event build() {
-            return new Event(id, ListUtils.toArray(params), ListUtils.toArray(tags));
+            return new Event(key, ListUtils.toArray(params), ListUtils.toArray(tags));
         }
 
         public Event post() {

@@ -1,13 +1,12 @@
 package com.alexvasilkov.events;
 
 import android.content.Context;
-import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 
 import com.alexvasilkov.events.cache.CacheProvider;
 import com.alexvasilkov.events.cache.MemoryCache;
 import com.alexvasilkov.events.internal.Dispatcher;
-import com.alexvasilkov.events.internal.Settings;
+import com.alexvasilkov.events.internal.EventsParams;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -31,7 +30,7 @@ public class Events {
      */
     public static void init(@NonNull Context context) {
         isInitialized = true;
-        Settings.setContext(context);
+        EventsParams.setContext(context.getApplicationContext());
     }
 
     private static void checkInit() {
@@ -40,7 +39,7 @@ public class Events {
     }
 
     public static void setDebug(boolean isDebug) {
-        Settings.setDebug(isDebug);
+        EventsParams.setDebug(isDebug);
     }
 
 
@@ -54,16 +53,8 @@ public class Events {
         Dispatcher.unregister(target);
     }
 
-    public static Event.Builder create(@IdRes int eventId) {
-        return new Event.Builder(eventId);
-    }
-
     public static Event.Builder create(@NonNull String eventKey) {
         return new Event.Builder(eventKey);
-    }
-
-    public static Event post(@IdRes int eventId) {
-        return new Event.Builder(eventId).post();
     }
 
     public static Event post(@NonNull String eventKey) {
@@ -72,7 +63,7 @@ public class Events {
 
 
     /**
-     * <p>Method marked with this annotation will receive events on main thread.</p>
+     * <p>Method marked with this annotation will receive events with specified key on main thread.</p>
      * <p>See {@link Background} annotation if you want to receive events on background thread.</p>
      * <p>See {@link Cache} annotation if you want to use cache feature.</p>
      * <p>You may listen for event's execution status using methods annotated with {@link Status}.</p>
@@ -93,21 +84,11 @@ public class Events {
      * Where {@code T1, T2, ...} - corresponding types of values passed to
      * {@link Event.Builder#param(Object...)} method. You may also access event's parameters
      * using {@link Event#getParam(int)} method.</p>
-     * <p><b>Note</b>
-     * <ul>
-     * <li>You must specify either {@code key} or {@code id} value.<br>
-     * But you should not use both or use {@code""} and {@code 0} as their values.</li>
-     * <li>Value for {@code id} should be from {@code R.id.*}.</li>
-     * </ul></p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Subscribe {
-
-        String key() default "";
-
-        @IdRes int id() default 0;
-
+        String value();
     }
 
     /**
@@ -131,7 +112,8 @@ public class Events {
     }
 
     /**
-     * <p>Method marked with this annotation will receive event's status updates on main thread.<br>
+     * <p>Method marked with this annotation will receive status updates for events
+     * with specified key on main thread.<br>
      * <ul>
      * <li>{@link EventStatus#STARTED} status will be sent before any subscribed method is executed
      * (right after event is posted to the bus) and for all newly registered events receivers
@@ -145,25 +127,16 @@ public class Events {
      * <li>{@code method(}{@link Event}{@code, }{@link EventStatus}{@code)}</li>
      * <li>{@code method(}{@link EventStatus}{@code)}</li>
      * </ul></p>
-     * <p><b>Note</b>
-     * <ul>
-     * <li>You must specify either {@code key} or {@code id} value.<br>
-     * But you should not use both or use {@code""} and {@code 0} as their values.</li>
-     * <li>Value for {@code id} should be from {@code R.id.*}.</li>
-     * </ul></p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Status {
-
-        String key() default "";
-
-        @IdRes int id() default 0;
-
+        String value();
     }
 
     /**
-     * <p>Method marked with this annotation will receive event's results on main thread.<br>
+     * <p>Method marked with this annotation will receive results for events
+     * with specified key on main thread.<br>
      * Result can be accessed either directly as method's parameter or through
      * {@link EventResult} object.</p>
      * <p><b>Allowed method parameters</b>
@@ -178,27 +151,17 @@ public class Events {
      * Where {@code T1, T2, ...} - corresponding types of values returned by method
      * marked with {@link Subscribe} annotation. Same values can be accessed using
      * {@link EventResult#getResult(int)} method.</p>
-     * <p><b>Note</b>
-     * <ul>
-     * <li>You must specify either {@code key} or {@code id} value.<br>
-     * But you should not use both or use {@code""} and {@code 0} as their values.</li>
-     * <li>Value for {@code id} should be from {@code R.id.*}.</li>
-     * </ul></p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Result {
-
-        String key() default "";
-
-        @IdRes int id() default 0;
-
+        String value();
     }
 
     /**
-     * Method marked with this annotation will receive error callbacks on main thread.
-     * <br><br>
-     * <b>Allowed method parameters</b>
+     * <p>Method marked with this annotation will receive error callbacks for events
+     * with specified key on main thread.</p>
+     * <p><b>Allowed method parameters</b>
      * <ul>
      * <li>{@code method()}</li>
      * <li>{@code method(}{@link Event}{@code)}</li>
@@ -206,22 +169,13 @@ public class Events {
      * <li>{@code method(}{@link Event}{@code, }{@link EventError}{@code)}</li>
      * <li>{@code method(}{@link Throwable}{@code)}</li>
      * <li>{@code method(}{@link EventError}{@code)}</li>
-     * </ul>
-     * <b>Note</b>
-     * <ul>
-     * <li>You may skip {@code key} and {@code id} parameters to handle all errors.<br>
-     * But you should not use both or use {@code""} and {@code 0} as their values.</li>
-     * <li>Value for {@code id} should be from {@code R.id.*}.</li>
-     * </ul>
+     * </ul></p>
+     * <p><b>Note</b>: You may skip event key to handle all errors of all events.</p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Error {
-
-        String key() default "";
-
-        @IdRes int id() default 0;
-
+        String value() default EventsParams.EMPTY_KEY;
     }
 
 }

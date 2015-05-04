@@ -1,6 +1,5 @@
 package com.alexvasilkov.events.internal;
 
-import android.content.res.Resources;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -22,39 +21,26 @@ class Utils {
         return m.getDeclaringClass().getSimpleName() + "." + m.getName() + "()";
     }
 
-    @NonNull
-    static String eventIdToString(int id) {
-        String key = IdUtils.fromId(id);
-        if (key != null) return key;
-
-        try {
-            return "R.id." + Settings.getContext().getResources().getResourceEntryName(id);
-        } catch (Resources.NotFoundException e) {
-            if (Settings.isDebug()) Log.d(TAG, "Can't find resource id name for " + id);
-            return String.valueOf(id);
-        }
-    }
-
 
     // Logs event
-    static void log(int eventId, String msg) {
-        if (Settings.isDebug())
-            Log.d(TAG, toLogStr(eventId, msg));
+    static void log(String eventKey, String msg) {
+        if (EventsParams.isDebug())
+            Log.d(TAG, toLogStr(eventKey, msg));
     }
 
     // Logs event and method
-    static void log(int eventId, EventMethod m, String msg) {
-        if (Settings.isDebug()) Log.d(TAG, toLogStr(eventId, m, msg));
+    static void log(String eventKey, EventMethod m, String msg) {
+        if (EventsParams.isDebug()) Log.d(TAG, toLogStr(eventKey, m, msg));
     }
 
     // Logs action (event and method)
     static void log(Task action, String msg) {
-        log(action.event.getId(), action.eventMethod, msg);
+        log(action.event.getKey(), action.eventMethod, msg);
     }
 
     // Logs event error
-    static void logE(int eventId, String msg) {
-        Log.e(TAG, toLogStr(eventId, msg));
+    static void logE(String eventKey, String msg) {
+        Log.e(TAG, toLogStr(eventKey, msg));
     }
 
     // Logs action (event and method) error
@@ -62,17 +48,17 @@ class Utils {
         Log.e(TAG, toLogStr(action, msg), error);
     }
 
-    static String toLogStr(int eventId, String msg) {
-        return "Event " + Utils.eventIdToString(eventId) + " | " + msg;
+    static String toLogStr(String eventKey, String msg) {
+        return "Event " + eventKey + " | " + msg;
     }
 
-    static String toLogStr(int eventId, EventMethod m, String msg) {
-        return "Event " + Utils.eventIdToString(eventId)
-                + " | " + m.type + " method " + Utils.methodToString(m.method) + " | " + msg;
+    static String toLogStr(String eventKey, EventMethod m, String msg) {
+        return "Event " + eventKey + " | " + m.type + " method " + Utils.methodToString(m.method) +
+                " | " + msg;
     }
 
     static String toLogStr(Task action, String msg) {
-        return toLogStr(action.event.getId(), action.eventMethod, msg);
+        return toLogStr(action.event.getKey(), action.eventMethod, msg);
     }
 
 

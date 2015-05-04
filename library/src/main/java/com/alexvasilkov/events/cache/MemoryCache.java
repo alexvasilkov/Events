@@ -60,7 +60,7 @@ public class MemoryCache implements CacheProvider {
 
     protected String toCacheKey(@NonNull Event event) {
         StringBuilder builder = new StringBuilder();
-        builder.append(event.getId());
+        builder.append(event.getKey());
 
         int count = event.getParamsCount();
         for (int i = 0; i < count; i++) {

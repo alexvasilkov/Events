@@ -18,6 +18,9 @@ import com.alexvasilkov.events.Events.Subscribe;
 public class SampleActivity extends Activity {
 
     private static final String TAG = SampleActivity.class.getSimpleName();
+
+    private static final String TASK_1 = "TASK_1";
+    private static final String TASK_2 = "TASK_2";
     private static final String TASK_3 = "TASK_3";
 
     @Override
@@ -33,8 +36,8 @@ public class SampleActivity extends Activity {
 
         Events.register(this);
 
-        Events.post(R.id.event_1);
-        Events.create(R.id.event_2).param("world").post();
+        Events.post(TASK_1);
+        Events.create(TASK_2).param("world").post();
         Events.post(TASK_3);
     }
 
@@ -46,7 +49,7 @@ public class SampleActivity extends Activity {
 
 
     @Background
-    @Subscribe(id = R.id.event_1)
+    @Subscribe(TASK_1)
     private int runTask_1_1() throws Exception {
         Log.d(TAG, "Task 1_1");
         SystemClock.sleep(1000);
@@ -58,7 +61,7 @@ public class SampleActivity extends Activity {
     }
 
     @Background
-    @Subscribe(id = R.id.event_1)
+    @Subscribe(TASK_1)
     private int runTask_1_2(Event event) throws Exception {
         Log.d(TAG, "Task 1_2");
         SystemClock.sleep(1500);
@@ -67,12 +70,12 @@ public class SampleActivity extends Activity {
         return 3;
     }
 
-    @Result(id = R.id.event_1)
+    @Result(TASK_1)
     private void onResult_1(int result) {
         Log.d(TAG, "Result 1: " + result);
     }
 
-    @Status(id = R.id.event_1)
+    @Status(TASK_1)
     private void onStatus_1(EventStatus status) {
         Log.d(TAG, "Status 1: " + status);
         if (status == EventStatus.FINISHED) {
@@ -81,25 +84,25 @@ public class SampleActivity extends Activity {
     }
 
 
-    @Subscribe(id = R.id.event_2)
+    @Subscribe(TASK_2)
     private EventResult runTask_2(String param) throws Exception {
         Log.d(TAG, "Task 2: " + param);
         return EventResult.builder().result("Hello, " + param + "!").build();
     }
 
-    @Result(id = R.id.event_2)
+    @Result(TASK_2)
     private void onResult_2(String result) {
         Log.d(TAG, "Result 2: " + result);
         Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
     }
 
 
-    @Subscribe(key = TASK_3)
+    @Subscribe(TASK_3)
     private static void runStaticTask_3() {
         Log.d(TAG, "Task 3");
     }
 
-    @Status(key = TASK_3)
+    @Status(TASK_3)
     private void onStatus_3(EventStatus status) {
         Log.d(TAG, "Status 3: " + status);
     }

@@ -73,8 +73,8 @@ public class Dispatcher {
     private static void scheduleStatusUpdates(EventTarget eventTarget, EventStatus status) {
         for (Event event : ACTIVE_EVENTS) {
             for (EventMethod m : eventTarget.methods) {
-                if (m.eventId == event.getId() && m.type == EventMethod.Type.STATUS) {
-                    Utils.log(event.getId(), m, "Scheduling status update for new target");
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.STATUS) {
+                    Utils.log(event.getKey(), m, "Scheduling status update for new target");
                     EXECUTION_QUEUE.addFirst(Task.create(eventTarget, m, event, status));
                 }
             }
@@ -86,8 +86,8 @@ public class Dispatcher {
     private static void scheduleStatusUpdates(Event event, EventStatus status) {
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (m.eventId == event.getId() && m.type == EventMethod.Type.STATUS) {
-                    Utils.log(event.getId(), m, "Scheduling status update");
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.STATUS) {
+                    Utils.log(event.getKey(), m, "Scheduling status update");
                     EXECUTION_QUEUE.add(Task.create(t, m, event, status));
                 }
             }
@@ -99,8 +99,8 @@ public class Dispatcher {
     private static void scheduleSubscribersInvokation(Event event) {
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (m.eventId == event.getId() && m.type == EventMethod.Type.SUBSCRIBE) {
-                    Utils.log(event.getId(), m, "Scheduling event handling");
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.SUBSCRIBE) {
+                    Utils.log(event.getKey(), m, "Scheduling event handling");
                     ((EventBase) event).handlersCount++;
                     EXECUTION_QUEUE.add(Task.create(t, m, event));
                 }
@@ -113,8 +113,8 @@ public class Dispatcher {
     private static void scheduleResultCallbacks(Event event, EventResult result) {
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (m.eventId == event.getId() && m.type == EventMethod.Type.RESULT) {
-                    Utils.log(event.getId(), m, "Scheduling result callback");
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.RESULT) {
+                    Utils.log(event.getKey(), m, "Scheduling result callback");
                     EXECUTION_QUEUE.add(Task.create(t, m, event, result));
                 }
             }
@@ -127,8 +127,8 @@ public class Dispatcher {
         // Sending error for explicit error handlers of given event
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (m.eventId == event.getId() && m.type == EventMethod.Type.ERROR) {
-                    Utils.log(event.getId(), m, "Scheduling error callback");
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.ERROR) {
+                    Utils.log(event.getKey(), m, "Scheduling error callback");
                     EXECUTION_QUEUE.add(Task.create(t, m, event, error));
                 }
             }
@@ -137,8 +137,8 @@ public class Dispatcher {
         // Sending error to general error handlers (with no particular event id)
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (m.eventId == IdUtils.NO_ID && m.type == EventMethod.Type.ERROR) {
-                    Utils.log(event.getId(), m, "Scheduling general error callback");
+                if (EventsParams.EMPTY_KEY.equals(m.eventKey) && m.type == EventMethod.Type.ERROR) {
+                    Utils.log(event.getKey(), m, "Scheduling general error callback");
                     EXECUTION_QUEUE.add(Task.create(t, m, event, error));
                 }
             }
@@ -160,7 +160,7 @@ public class Dispatcher {
         EventTarget eventTarget = new EventTarget(target);
         TARGETS.add(eventTarget);
 
-        if (Settings.isDebug())
+        if (EventsParams.isDebug())
             Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Registered");
 
         scheduleStatusUpdates(eventTarget, EventStatus.STARTED);
@@ -186,13 +186,13 @@ public class Dispatcher {
         if (!isUnregistered)
             Log.e(Utils.TAG, "Target " + Utils.classToString(target) + " was not registered");
 
-        if (Settings.isDebug())
+        if (EventsParams.isDebug())
             Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Unregistered");
     }
 
     // Handling event posting on main thread
     private static void handleEventPost(Event event) {
-        Utils.log(event.getId(), "Handling posted event");
+        Utils.log(event.getKey(), "Handling posted event");
 
         ACTIVE_EVENTS.add(event);
         scheduleStatusUpdates(event, EventStatus.STARTED);
@@ -211,7 +211,7 @@ public class Dispatcher {
     // Handling event result on main thread
     private static void handleEventResult(Event event, EventResult result) {
         if (!ACTIVE_EVENTS.contains(event)) {
-            Utils.logE(event.getId(), "Cannot send result of finished event");
+            Utils.logE(event.getKey(), "Cannot send result of finished event");
             return;
         }
 
@@ -222,7 +222,7 @@ public class Dispatcher {
     // Handling event error on main thread
     private static void handleEventError(Event event, EventError error) {
         if (!ACTIVE_EVENTS.contains(event)) {
-            Utils.logE(event.getId(), "Cannot send error of finished event");
+            Utils.logE(event.getKey(), "Cannot send error of finished event");
             return;
         }
 
@@ -233,7 +233,7 @@ public class Dispatcher {
     // Handling finished event on main thread
     private static void handleEventFinished(Event event) {
         if (!ACTIVE_EVENTS.contains(event)) {
-            Utils.logE(event.getId(), "Cannot finish already finished event");
+            Utils.logE(event.getKey(), "Cannot finish already finished event");
             return;
         }
 
@@ -251,7 +251,7 @@ public class Dispatcher {
     private static void handleTasksExecution() {
         if (EXECUTION_QUEUE.isEmpty()) return; // Nothing to dispatch
 
-        if (Settings.isDebug()) Log.d(Utils.TAG, "Dispatching: started");
+        if (EventsParams.isDebug()) Log.d(Utils.TAG, "Dispatching: started");
 
         long started = SystemClock.uptimeMillis();
 
@@ -273,7 +273,7 @@ public class Dispatcher {
             long time = SystemClock.uptimeMillis() - started;
 
             if (time > MAX_TIME_IN_MAIN_THREAD) {
-                if (Settings.isDebug())
+                if (EventsParams.isDebug())
                     Log.d(Utils.TAG, "Dispatching: time in main thread "
                             + time + " ms > " + MAX_TIME_IN_MAIN_THREAD + " ms");
                 executeDelayed();
@@ -281,7 +281,7 @@ public class Dispatcher {
             }
         }
 
-        if (Settings.isDebug()) Log.d(Utils.TAG, "Dispatching: finished");
+        if (EventsParams.isDebug()) Log.d(Utils.TAG, "Dispatching: finished");
     }
 
 

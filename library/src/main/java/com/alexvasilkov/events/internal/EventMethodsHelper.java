@@ -49,7 +49,7 @@ class EventMethodsHelper {
             collectMethods(clazz, methods, statics);
             cache.put(clazz, methods);
 
-            if (Settings.isDebug()) {
+            if (EventsParams.isDebug()) {
                 long time = SystemClock.uptimeMillis() - start;
                 Log.d(Utils.TAG, "Collecting methods of " + clazz.getName() + " in " + time + " ms");
             }
@@ -78,56 +78,35 @@ class EventMethodsHelper {
 
                 // No method's parameters check is required here since any combination is valid
 
-                Subscribe an = m.getAnnotation(Subscribe.class);
-
-                String key = an.key();
-                int id = an.id();
-                int eventId = getEventId(m, Subscribe.class, key, id);
-
+                String key = m.getAnnotation(Subscribe.class).value();
                 boolean isBackground = m.isAnnotationPresent(Background.class);
                 CacheProvider cache = getCacheProvider(m);
 
-                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, eventId, isBackground, cache);
+                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, isBackground, cache);
 
             } else if (m.isAnnotationPresent(Status.class)) {
 
                 checkNoAnnotations(m, Status.class,
                         Subscribe.class, Background.class, Cache.class, Result.class, Error.class);
 
-                Status an = m.getAnnotation(Status.class);
-
-                String key = an.key();
-                int id = an.id();
-                int eventId = getEventId(m, Status.class, key, id);
-
-                info = new EventMethod(m, EventMethod.Type.STATUS, eventId);
+                String key = m.getAnnotation(Status.class).value();
+                info = new EventMethod(m, EventMethod.Type.STATUS, key);
 
             } else if (m.isAnnotationPresent(Result.class)) {
 
                 checkNoAnnotations(m, Result.class,
                         Subscribe.class, Background.class, Cache.class, Status.class, Error.class);
 
-                Result an = m.getAnnotation(Result.class);
-
-                String key = an.key();
-                int id = an.id();
-                int eventId = getEventId(m, Result.class, key, id);
-
-                info = new EventMethod(m, EventMethod.Type.RESULT, eventId);
+                String key = m.getAnnotation(Result.class).value();
+                info = new EventMethod(m, EventMethod.Type.RESULT, key);
 
             } else if (m.isAnnotationPresent(Error.class)) {
 
                 checkNoAnnotations(m, Error.class,
                         Subscribe.class, Background.class, Cache.class, Status.class, Result.class);
 
-                Error an = m.getAnnotation(Error.class);
-
-                String key = an.key();
-                int id = an.id();
-                int eventId = id == 0 && (key == null || key.length() == 0) ?
-                        IdUtils.NO_ID : getEventId(m, Error.class, key, id);
-
-                info = new EventMethod(m, EventMethod.Type.ERROR, eventId);
+                String key = m.getAnnotation(Error.class).value();
+                info = new EventMethod(m, EventMethod.Type.ERROR, key);
 
             }
 
@@ -147,35 +126,6 @@ class EventMethodsHelper {
                 throw new EventsException("Method " + Utils.methodToString(method)
                         + " marked with " + foundAn.getSimpleName()
                         + " cannot be marked with " + an.getSimpleName());
-        }
-    }
-
-    // Checks that key and id are correctly set for given annotation (only one of them can be set).
-    // Returns integer event id.
-    private static int getEventId(Method m, Class<? extends Annotation> an, String key, int id) {
-        if (id == 0 && key.length() == 0) {
-
-            throw new EventsException("You should provide either key or id for "
-                    + an.getSimpleName() + " annotation on method " + Utils.methodToString(m));
-
-        } else if (id != 0 && key.length() > 0) {
-
-            throw new EventsException("You can't use both key and id with "
-                    + an.getSimpleName() + " annotation on method " + Utils.methodToString(m));
-
-        } else if (id == 0) {
-
-            return IdUtils.fromKey(key);
-
-        } else if (IdUtils.isInvalidAndroidId(id)) {
-
-            throw new EventsException("Invalid id value (" + id + ") of "
-                    + an.getSimpleName() + " annotation on method " + Utils.methodToString(m)
-                    + ". Only values from R.id.* are valid. Consider using key instead.");
-
-        } else {
-
-            return id;
         }
     }
 
