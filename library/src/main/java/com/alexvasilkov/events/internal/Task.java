@@ -1,7 +1,7 @@
 package com.alexvasilkov.events.internal;
 
 import com.alexvasilkov.events.Event;
-import com.alexvasilkov.events.EventError;
+import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
 import com.alexvasilkov.events.EventsException;
@@ -17,16 +17,16 @@ class Task implements Runnable {
     // Optional values
     private final EventStatus status;
     private final EventResult result;
-    private final EventError error;
+    private final EventFailure failure;
 
     private Task(EventTarget eventTarget, EventMethod eventMethod, Event event,
-                 EventStatus status, EventResult result, EventError error) {
+                 EventStatus status, EventResult result, EventFailure failure) {
         this.eventTarget = eventTarget;
         this.eventMethod = eventMethod;
         this.event = event;
         this.status = status;
         this.result = result;
-        this.error = error;
+        this.failure = failure;
     }
 
     static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event) {
@@ -41,8 +41,8 @@ class Task implements Runnable {
         return new Task(eventTarget, eventMethod, event, null, result, null);
     }
 
-    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event, EventError error) {
-        return new Task(eventTarget, eventMethod, event, null, null, error);
+    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event, EventFailure failure) {
+        return new Task(eventTarget, eventMethod, event, null, null, failure);
     }
 
     @Override
@@ -80,15 +80,15 @@ class Task implements Runnable {
         // Calling actual method
         if (isShouldCallMethod && methodError == null) {
             try {
-                Object[] args = eventMethod.args(event, status, result, error);
+                Object[] args = eventMethod.args(event, status, result, failure);
                 Object returnedResult = eventMethod.method.invoke(target, args);
 
                 if (returnedResult instanceof EventResult) {
                     methodResult = (EventResult) returnedResult;
                 } else if (returnedResult == null) {
-                    methodResult = EventResult.builder().build();
+                    methodResult = EventResult.EMPTY;
                 } else {
-                    methodResult = EventResult.builder().result(returnedResult).build();
+                    methodResult = EventResult.create().result(returnedResult).build();
                 }
 
                 Utils.log(this, "Executed");
@@ -113,7 +113,7 @@ class Task implements Runnable {
             if (methodError != null) {
                 Utils.logE(this, "Error during execution", methodError);
 
-                Dispatcher.postEventError(event, new EventError(methodError));
+                Dispatcher.postEventFailure(event, EventFailure.create(methodError));
             } else if (eventMethod.hasReturnType) {
                 Dispatcher.postEventResult(event, methodResult);
             }

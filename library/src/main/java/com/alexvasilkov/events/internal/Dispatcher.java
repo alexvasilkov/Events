@@ -8,7 +8,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.alexvasilkov.events.Event;
-import com.alexvasilkov.events.EventError;
+import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
 
@@ -52,9 +52,9 @@ public class Dispatcher {
         MAIN_THREAD.postEventResult(event, result);
     }
 
-    // Schedules error callback
-    public static void postEventError(Event event, EventError error) {
-        MAIN_THREAD.postEventError(event, error);
+    // Schedules failure callback
+    public static void postEventFailure(Event event, EventFailure failure) {
+        MAIN_THREAD.postEventFailure(event, failure);
     }
 
     // Schedules finished status callback
@@ -121,25 +121,25 @@ public class Dispatcher {
         }
     }
 
-    // Schedules sending error to all registered targets.
+    // Schedules sending failure callback to all registered targets.
     // Should be called on main thread.
-    private static void scheduleErrorCallbacks(Event event, EventError error) {
-        // Sending error for explicit error handlers of given event
+    private static void scheduleFailureCallbacks(Event event, EventFailure failure) {
+        // Sending failure callback for explicit handlers of given event
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.ERROR) {
-                    Utils.log(event.getKey(), m, "Scheduling error callback");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, error));
+                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.FAILURE) {
+                    Utils.log(event.getKey(), m, "Scheduling failure callback");
+                    EXECUTION_QUEUE.add(Task.create(t, m, event, failure));
                 }
             }
         }
 
-        // Sending error to general error handlers (with no particular event id)
+        // Sending failure callback to general handlers (with no particular event key)
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (EventsParams.EMPTY_KEY.equals(m.eventKey) && m.type == EventMethod.Type.ERROR) {
-                    Utils.log(event.getKey(), m, "Scheduling general error callback");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, error));
+                if (EventsParams.EMPTY_KEY.equals(m.eventKey) && m.type == EventMethod.Type.FAILURE) {
+                    Utils.log(event.getKey(), m, "Scheduling general failure callback");
+                    EXECUTION_QUEUE.add(Task.create(t, m, event, failure));
                 }
             }
         }
@@ -219,14 +219,14 @@ public class Dispatcher {
         executeDelayed();
     }
 
-    // Handling event error on main thread
-    private static void handleEventError(Event event, EventError error) {
+    // Handling event failure on main thread
+    private static void handleEventFailure(Event event, EventFailure failure) {
         if (!ACTIVE_EVENTS.contains(event)) {
-            Utils.logE(event.getKey(), "Cannot send error of finished event");
+            Utils.logE(event.getKey(), "Cannot send failure callback of finished event");
             return;
         }
 
-        scheduleErrorCallbacks(event, error);
+        scheduleFailureCallbacks(event, failure);
         executeDelayed();
     }
 
@@ -296,7 +296,7 @@ public class Dispatcher {
         private static final int MSG_EXECUTE = 2;
         private static final int MSG_POST_EVENT = 3;
         private static final int MSG_POST_EVENT_RESULT = 4;
-        private static final int MSG_POST_EVENT_ERROR = 5;
+        private static final int MSG_POST_EVENT_FAILURE = 5;
         private static final int MSG_POST_EVENT_FINISHED = 6;
 
         MainThreadHandler() {
@@ -324,9 +324,9 @@ public class Dispatcher {
             sendMessageDelayed(obtainMessage(MSG_POST_EVENT_RESULT, data), MESSAGE_DELAY);
         }
 
-        void postEventError(Event event, EventError error) {
-            Object[] data = new Object[]{event, error};
-            sendMessageDelayed(obtainMessage(MSG_POST_EVENT_ERROR, data), MESSAGE_DELAY);
+        void postEventFailure(Event event, EventFailure failure) {
+            Object[] data = new Object[]{event, failure};
+            sendMessageDelayed(obtainMessage(MSG_POST_EVENT_FAILURE, data), MESSAGE_DELAY);
         }
 
         void postEventFinished(Event event) {
@@ -357,9 +357,9 @@ public class Dispatcher {
                     handleEventResult((Event) data[0], (EventResult) data[1]);
                     break;
                 }
-                case MSG_POST_EVENT_ERROR: {
+                case MSG_POST_EVENT_FAILURE: {
                     Object[] data = (Object[]) msg.obj;
-                    handleEventError((Event) data[0], (EventError) data[1]);
+                    handleEventFailure((Event) data[0], (EventFailure) data[1]);
                     break;
                 }
                 case MSG_POST_EVENT_FINISHED: {

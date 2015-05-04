@@ -8,16 +8,23 @@ import com.alexvasilkov.events.internal.EventsParams;
 import com.alexvasilkov.events.internal.ListUtils;
 
 import java.util.List;
+import java.util.UUID;
 
 public class Event extends EventBase {
 
+    private final String uniqueId;
     private final String key;
     private final Object[] params, tags;
 
-    protected Event(String key, Object[] params, Object[] tags) {
+    Event(String key, Object[] params, Object[] tags) {
+        this.uniqueId = UUID.randomUUID().toString();
         this.key = key;
         this.params = params;
         this.tags = tags;
+    }
+
+    public String getUniqueId() {
+        return uniqueId;
     }
 
     public String getKey() {
@@ -72,7 +79,7 @@ public class Event extends EventBase {
      * {@link #postResult(EventResult)}.
      */
     public Event postResult(Object... params) {
-        return postResult(EventResult.builder().result(params).build());
+        return postResult(EventResult.create().result(params).build());
     }
 
 

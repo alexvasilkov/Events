@@ -7,13 +7,21 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.alexvasilkov.events.Event;
+import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
-import com.alexvasilkov.events.Events;
 import com.alexvasilkov.events.Events.Background;
+import com.alexvasilkov.events.Events.Failure;
 import com.alexvasilkov.events.Events.Result;
 import com.alexvasilkov.events.Events.Status;
 import com.alexvasilkov.events.Events.Subscribe;
+
+import static com.alexvasilkov.events.Events.create;
+import static com.alexvasilkov.events.Events.init;
+import static com.alexvasilkov.events.Events.post;
+import static com.alexvasilkov.events.Events.register;
+import static com.alexvasilkov.events.Events.setDebug;
+import static com.alexvasilkov.events.Events.unregister;
 
 public class SampleActivity extends Activity {
 
@@ -31,20 +39,20 @@ public class SampleActivity extends Activity {
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        Events.init(this);
-        Events.setDebug(true);
+        init(this);
+        setDebug(true);
 
-        Events.register(this);
+        register(this);
 
-        Events.post(TASK_1);
-        Events.create(TASK_2).param("world").post();
-        Events.post(TASK_3);
+        post(TASK_1);
+        create(TASK_2).param("world").post();
+        post(TASK_3);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Events.unregister(this);
+        unregister(this);
     }
 
 
@@ -54,8 +62,8 @@ public class SampleActivity extends Activity {
         Log.d(TAG, "Task 1_1");
         SystemClock.sleep(1000);
 
-        Events.register(SampleActivity.class);
-        Events.post(TASK_3);
+        register(SampleActivity.class);
+        post(TASK_3);
 
         return 1;
     }
@@ -87,7 +95,7 @@ public class SampleActivity extends Activity {
     @Subscribe(TASK_2)
     private EventResult runTask_2(String param) throws Exception {
         Log.d(TAG, "Task 2: " + param);
-        return EventResult.builder().result("Hello, " + param + "!").build();
+        return EventResult.create().result("Hello, " + param + "!").build();
     }
 
     @Result(TASK_2)
@@ -100,11 +108,22 @@ public class SampleActivity extends Activity {
     @Subscribe(TASK_3)
     private static void runStaticTask_3() {
         Log.d(TAG, "Task 3");
+        throw new RuntimeException("Custom exception");
     }
 
     @Status(TASK_3)
     private void onStatus_3(EventStatus status) {
         Log.d(TAG, "Status 3: " + status);
+    }
+
+    @Failure(TASK_3)
+    private void onFail_3(EventFailure failure) {
+        Log.d(TAG, "Failure 3", failure.getError());
+    }
+
+    @Failure
+    private void onFail(EventFailure failure) {
+        Log.d(TAG, "Failure general", failure.getError());
     }
 
 }

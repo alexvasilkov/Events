@@ -3,7 +3,7 @@ package com.alexvasilkov.events.internal;
 import android.support.annotation.Nullable;
 
 import com.alexvasilkov.events.Event;
-import com.alexvasilkov.events.EventError;
+import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
 import com.alexvasilkov.events.EventsException;
@@ -14,7 +14,7 @@ import java.lang.reflect.Method;
 class EventMethod {
 
     enum Type {
-        SUBSCRIBE, STATUS, RESULT, ERROR
+        SUBSCRIBE, STATUS, RESULT, FAILURE
     }
 
     final Method method;
@@ -72,16 +72,16 @@ class EventMethod {
     }
 
     Object[] args(Event event, @Nullable EventStatus status, @Nullable EventResult result,
-                  @Nullable EventError error) {
+                  @Nullable EventFailure failure) {
 
         Object[] args = new Object[params.length];
-        fillAndCheckArgs(args, event, status, result, error);
+        fillAndCheckArgs(args, event, status, result, failure);
         return args;
     }
 
     private void fillAndCheckArgs(@Nullable Object[] args, @Nullable Event event,
                                   @Nullable EventStatus status, @Nullable EventResult result,
-                                  @Nullable EventError error) {
+                                  @Nullable EventFailure failure) {
         switch (type) {
             case SUBSCRIBE:
                 subscribeArgs(args, event);
@@ -92,8 +92,8 @@ class EventMethod {
             case RESULT:
                 resultArgs(args, event, result);
                 break;
-            case ERROR:
-                errorArgs(args, event, error);
+            case FAILURE:
+                failureArgs(args, event, failure);
                 break;
             default:
                 throw new EventsException(
@@ -224,11 +224,11 @@ class EventMethod {
         }
     }
 
-    private void errorArgs(@Nullable Object[] args, @Nullable Event event,
-                           @Nullable EventError error) {
+    private void failureArgs(@Nullable Object[] args, @Nullable Event event,
+                             @Nullable EventFailure failure) {
 
         final String MSG = "Allowed parameters: [], [Event], [Event, Throwable], " +
-                "[Event, EventError], [Throwable] or [EventError]";
+                "[Event, EventFailure], [Throwable] or [EventFailure]";
 
         if (params.length > 0) {
             if (params[0] == Event.class) {
@@ -238,10 +238,10 @@ class EventMethod {
                 if (params.length == 2) {
                     if (params[1] == Throwable.class) {
                         // Detected [Event, Throwable]
-                        if (args != null && error != null) args[1] = error.getError();
-                    } else if (params[1] == EventError.class) {
-                        // Detected [Event, EventError]
-                        if (args != null) args[1] = error;
+                        if (args != null && failure != null) args[1] = failure.getError();
+                    } else if (params[1] == EventFailure.class) {
+                        // Detected [Event, EventFailure]
+                        if (args != null) args[1] = failure;
                     } else {
                         // Wrong [Event, Unknown]
                         throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
@@ -254,7 +254,7 @@ class EventMethod {
                 // Detected [Event]
             } else if (params[0] == Throwable.class) {
                 // [Throwable, ...?]
-                if (args != null && error != null) args[0] = error.getError();
+                if (args != null && failure != null) args[0] = failure.getError();
 
                 if (params.length > 1) {
                     // Wrong [Throwable, Unknown...]
@@ -262,16 +262,16 @@ class EventMethod {
                 }
                 // Otherwise:
                 // Detected [Throwable]
-            } else if (params[0] == EventError.class) {
-                // [EventError, ...?]
-                if (args != null) args[0] = error;
+            } else if (params[0] == EventFailure.class) {
+                // [EventFailure, ...?]
+                if (args != null) args[0] = failure;
 
                 if (params.length > 1) {
-                    // Wrong [EventError, Unknown...]
+                    // Wrong [EventFailure, Unknown...]
                     throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
                 }
                 // Otherwise:
-                // Detected [EventError]
+                // Detected [EventFailure]
             } else {
                 // Wrong [Unknown...]
                 throw new EventsException(Utils.toLogStr(eventKey, this, MSG));

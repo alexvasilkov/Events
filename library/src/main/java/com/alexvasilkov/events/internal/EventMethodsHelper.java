@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.alexvasilkov.events.Events.Background;
 import com.alexvasilkov.events.Events.Cache;
-import com.alexvasilkov.events.Events.Error;
+import com.alexvasilkov.events.Events.Failure;
 import com.alexvasilkov.events.Events.Result;
 import com.alexvasilkov.events.Events.Status;
 import com.alexvasilkov.events.Events.Subscribe;
@@ -74,7 +74,7 @@ class EventMethodsHelper {
             if (m.isAnnotationPresent(Subscribe.class)) {
 
                 checkNoAnnotations(m, Subscribe.class,
-                        Status.class, Result.class, Error.class);
+                        Status.class, Result.class, Failure.class);
 
                 // No method's parameters check is required here since any combination is valid
 
@@ -87,7 +87,7 @@ class EventMethodsHelper {
             } else if (m.isAnnotationPresent(Status.class)) {
 
                 checkNoAnnotations(m, Status.class,
-                        Subscribe.class, Background.class, Cache.class, Result.class, Error.class);
+                        Subscribe.class, Background.class, Cache.class, Result.class, Failure.class);
 
                 String key = m.getAnnotation(Status.class).value();
                 info = new EventMethod(m, EventMethod.Type.STATUS, key);
@@ -95,18 +95,18 @@ class EventMethodsHelper {
             } else if (m.isAnnotationPresent(Result.class)) {
 
                 checkNoAnnotations(m, Result.class,
-                        Subscribe.class, Background.class, Cache.class, Status.class, Error.class);
+                        Subscribe.class, Background.class, Cache.class, Status.class, Failure.class);
 
                 String key = m.getAnnotation(Result.class).value();
                 info = new EventMethod(m, EventMethod.Type.RESULT, key);
 
-            } else if (m.isAnnotationPresent(Error.class)) {
+            } else if (m.isAnnotationPresent(Failure.class)) {
 
-                checkNoAnnotations(m, Error.class,
+                checkNoAnnotations(m, Failure.class,
                         Subscribe.class, Background.class, Cache.class, Status.class, Result.class);
 
-                String key = m.getAnnotation(Error.class).value();
-                info = new EventMethod(m, EventMethod.Type.ERROR, key);
+                String key = m.getAnnotation(Failure.class).value();
+                info = new EventMethod(m, EventMethod.Type.FAILURE, key);
 
             }
 

@@ -6,9 +6,11 @@ import java.util.List;
 
 public class EventResult {
 
+    public static final EventResult EMPTY = new EventResult(null, null);
+
     private final Object[] results, tags;
 
-    protected EventResult(Object[] results, Object[] tags) {
+    EventResult(Object[] results, Object[] tags) {
         this.results = results;
         this.tags = tags;
     }
@@ -38,7 +40,7 @@ public class EventResult {
     }
 
 
-    public static Builder builder() {
+    public static Builder create() {
         return new Builder();
     }
 

@@ -13,13 +13,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * TODO: improvements
- * 1. add error handlers?
- * 2. flag async handler as single task (only one task instance at most)
- * <p/>
- * TODO: write documentation
- * 1. Purpose, usage examples
- * 2. javadocs
+ * TODO: documentation
  */
 public class Events {
 
@@ -73,7 +67,7 @@ public class Events {
      * You can also send several results during method execution using
      * {@link Event#postResult(EventResult)} and {@link Event#postResult(Object...)}.</p>
      * <p>Any uncaught exception thrown during method execution will be sent to the bus and can be
-     * received using methods annotated with {@link Error}.</p>
+     * received using methods annotated with {@link Failure}.</p>
      * <p><b>Allowed method parameters</b>
      * <ul>
      * <li>{@code method()}</li>
@@ -159,22 +153,22 @@ public class Events {
     }
 
     /**
-     * <p>Method marked with this annotation will receive error callbacks for events
+     * <p>Method marked with this annotation will receive failure callbacks for events
      * with specified key on main thread.</p>
      * <p><b>Allowed method parameters</b>
      * <ul>
      * <li>{@code method()}</li>
      * <li>{@code method(}{@link Event}{@code)}</li>
      * <li>{@code method(}{@link Event}{@code, }{@link Throwable}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, }{@link EventError}{@code)}</li>
+     * <li>{@code method(}{@link Event}{@code, }{@link EventFailure}{@code)}</li>
      * <li>{@code method(}{@link Throwable}{@code)}</li>
-     * <li>{@code method(}{@link EventError}{@code)}</li>
+     * <li>{@code method(}{@link EventFailure}{@code)}</li>
      * </ul></p>
-     * <p><b>Note</b>: You may skip event key to handle all errors of all events.</p>
+     * <p><b>Note</b>: You may skip event key to handle all failures of all events.</p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    public @interface Error {
+    public @interface Failure {
         String value() default EventsParams.EMPTY_KEY;
     }
 
