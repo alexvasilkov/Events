@@ -25,8 +25,10 @@ public class Dispatcher {
     private static final long MAX_TIME_IN_MAIN_THREAD = 10L;
 
     private static final List<EventTarget> TARGETS = new LinkedList<>();
-    private static final Set<Event> ACTIVE_EVENTS = new HashSet<>();
     private static final LinkedList<Task> EXECUTION_QUEUE = new LinkedList<>();
+
+    private static final Set<Event> ACTIVE_EVENTS = new HashSet<>();
+    private static final Set<Task> ACTIVE_TASKS = new HashSet<>();
 
     private static final MainThreadHandler MAIN_THREAD = new MainThreadHandler();
     private static final ExecutorService BACKGROUND_EXECUTOR = Executors.newCachedThreadPool();
@@ -58,8 +60,8 @@ public class Dispatcher {
     }
 
     // Schedules finished status callback
-    public static void postEventFinished(Event event) {
-        MAIN_THREAD.postEventFinished(event);
+    public static void postTaskFinished(Task task) {
+        MAIN_THREAD.postTaskFinished(task);
     }
 
     // Schedules tasks execution on main thread
@@ -96,13 +98,35 @@ public class Dispatcher {
 
     // Schedules handling of given event for all registered targets.
     // Should be called on main thread.
-    private static void scheduleSubscribersInvokation(Event event) {
+    private static void scheduleSubscribersInvocation(Event event) {
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
                 if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.SUBSCRIBE) {
-                    Utils.log(event.getKey(), m, "Scheduling event handling");
+
+                    // If we'll find equivalent task (same target, same method, similar event)
+                    // which is not yet running, then we can skip execution of current event
+                    boolean skipEvent = false;
+
+                    for (Task task : ACTIVE_TASKS) {
+                        if (task.eventTarget == t && task.eventMethod == m && !task.isRunning
+                                && Event.isDeeplyEqual(task.event, event)) {
+
+                            Utils.log(event.getKey(), m, "Similar event found, skipping execution");
+
+                            skipEvent = true;
+                            break;
+                        }
+                    }
+
+                    if (skipEvent) continue;
+
+                    Utils.log(event.getKey(), m, "Scheduling event execution");
+
                     ((EventBase) event).handlersCount++;
-                    EXECUTION_QUEUE.add(Task.create(t, m, event));
+
+                    Task task = Task.create(t, m, event);
+                    EXECUTION_QUEUE.add(task);
+                    ACTIVE_TASKS.add(task);
                 }
             }
         }
@@ -194,18 +218,19 @@ public class Dispatcher {
     private static void handleEventPost(Event event) {
         Utils.log(event.getKey(), "Handling posted event");
 
-        ACTIVE_EVENTS.add(event);
-        scheduleStatusUpdates(event, EventStatus.STARTED);
+        int sizeBefore = EXECUTION_QUEUE.size();
 
-        scheduleSubscribersInvokation(event);
+        scheduleStatusUpdates(event, EventStatus.STARTED);
+        scheduleSubscribersInvocation(event);
 
         if (((EventBase) event).handlersCount == 0) {
-            // No handlers were found
-            ACTIVE_EVENTS.remove(event);
-            scheduleStatusUpdates(event, EventStatus.FINISHED);
+            Utils.log(event.getKey(), "No subscribers found");
+            // Removing all scheduled STARTED status callbacks
+            while (EXECUTION_QUEUE.size() > sizeBefore) EXECUTION_QUEUE.removeLast();
+        } else {
+            ACTIVE_EVENTS.add(event);
+            executeDelayed();
         }
-
-        executeDelayed();
     }
 
     // Handling event result on main thread
@@ -231,7 +256,16 @@ public class Dispatcher {
     }
 
     // Handling finished event on main thread
-    private static void handleEventFinished(Event event) {
+    private static void handleTaskFinished(Task task) {
+        ACTIVE_TASKS.remove(task);
+
+        if (task.eventMethod.isSingleThread) {
+            Utils.log(task, "Single-thread method is no longer in use");
+            task.eventMethod.isInUse = false;
+        }
+
+        Event event = task.event;
+
         if (!ACTIVE_EVENTS.contains(event)) {
             Utils.logE(event.getKey(), "Cannot finish already finished event");
             return;
@@ -255,14 +289,23 @@ public class Dispatcher {
 
         long started = SystemClock.uptimeMillis();
 
-        while (!EXECUTION_QUEUE.isEmpty()) {
-            final Task task = EXECUTION_QUEUE.poll();
+        for (Iterator<Task> iterator = EXECUTION_QUEUE.iterator(); iterator.hasNext(); ) {
+            final Task task = iterator.next();
 
             if (task.eventTarget.isUnregistered) continue; // Target is unregistered
 
             if (task.eventMethod.isBackground) {
-                Utils.log(task, "Executing in background");
+                if (task.eventMethod.isSingleThread) {
+                    if (task.eventMethod.isInUse) {
+                        Utils.log(task, "Single-thread method is already in use, waiting");
+                        continue;
+                    } else {
+                        Utils.log(task, "Single-thread method is in use now");
+                        task.eventMethod.isInUse = true;
+                    }
+                }
 
+                Utils.log(task, "Executing in background");
                 BACKGROUND_EXECUTOR.execute(task);
             } else {
                 Utils.log(task, "Executing");
@@ -270,6 +313,9 @@ public class Dispatcher {
                 task.run();
             }
 
+            iterator.remove();
+
+            // Checking that we are not spending to much time on main thread
             long time = SystemClock.uptimeMillis() - started;
 
             if (time > MAX_TIME_IN_MAIN_THREAD) {
@@ -297,7 +343,7 @@ public class Dispatcher {
         private static final int MSG_POST_EVENT = 3;
         private static final int MSG_POST_EVENT_RESULT = 4;
         private static final int MSG_POST_EVENT_FAILURE = 5;
-        private static final int MSG_POST_EVENT_FINISHED = 6;
+        private static final int MSG_POST_TASK_FINISHED = 6;
 
         MainThreadHandler() {
             super(Looper.getMainLooper());
@@ -329,8 +375,8 @@ public class Dispatcher {
             sendMessageDelayed(obtainMessage(MSG_POST_EVENT_FAILURE, data), MESSAGE_DELAY);
         }
 
-        void postEventFinished(Event event) {
-            sendMessageDelayed(obtainMessage(MSG_POST_EVENT_FINISHED, event), MESSAGE_DELAY);
+        void postTaskFinished(Task task) {
+            sendMessageDelayed(obtainMessage(MSG_POST_TASK_FINISHED, task), MESSAGE_DELAY);
         }
 
         @Override
@@ -362,8 +408,8 @@ public class Dispatcher {
                     handleEventFailure((Event) data[0], (EventFailure) data[1]);
                     break;
                 }
-                case MSG_POST_EVENT_FINISHED: {
-                    handleEventFinished((Event) msg.obj);
+                case MSG_POST_TASK_FINISHED: {
+                    handleTaskFinished((Task) msg.obj);
                     break;
                 }
             }

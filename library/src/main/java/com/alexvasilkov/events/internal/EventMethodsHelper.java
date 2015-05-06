@@ -79,10 +79,13 @@ class EventMethodsHelper {
                 // No method's parameters check is required here since any combination is valid
 
                 String key = m.getAnnotation(Subscribe.class).value();
-                boolean isBackground = m.isAnnotationPresent(Background.class);
+
+                boolean isBack = m.isAnnotationPresent(Background.class);
+                boolean isSingle = isBack && m.getAnnotation(Background.class).singleThread();
+
                 CacheProvider cache = getCacheProvider(m);
 
-                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, isBackground, cache);
+                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, isBack, isSingle, cache);
 
             } else if (m.isAnnotationPresent(Status.class)) {
 

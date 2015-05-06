@@ -88,10 +88,13 @@ public class Events {
     /**
      * <p>Method marked with this annotation will receive events on background thread.</p>
      * <p>Method must also be marked with {@link Subscribe} annotation.</p>
+     * <p>If {@link #singleThread()} set to {@code true} then only one thread will be used to
+     * execute this method. All other events targeting this method will wait until it is finished.</p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Background {
+        boolean singleThread() default false;
     }
 
     /**

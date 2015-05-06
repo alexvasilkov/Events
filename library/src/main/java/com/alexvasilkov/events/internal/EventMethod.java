@@ -10,6 +10,7 @@ import com.alexvasilkov.events.EventsException;
 import com.alexvasilkov.events.cache.CacheProvider;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 class EventMethod {
 
@@ -22,21 +23,28 @@ class EventMethod {
     final String eventKey;
 
     final boolean isBackground;
+    final boolean isSingleThread;
     final CacheProvider cache;
 
+    final boolean isStatic;
     final boolean hasReturnType;
     final Class<?>[] params;
 
-    EventMethod(Method method, Type type, String eventKey, boolean isBackground, CacheProvider cache) {
+    boolean isInUse;
+
+    EventMethod(Method method, Type type, String eventKey,
+                boolean isBackground, boolean isSingleThread, CacheProvider cache) {
         this.method = method;
         this.type = type;
         this.eventKey = eventKey;
 
         this.isBackground = isBackground;
+        this.isSingleThread = isSingleThread;
         this.cache = cache;
 
         method.setAccessible(true);
 
+        this.isStatic = Modifier.isStatic(method.getModifiers());
         this.hasReturnType = !method.getReturnType().equals(Void.TYPE);
         this.params = method.getParameterTypes();
 
@@ -44,7 +52,7 @@ class EventMethod {
     }
 
     EventMethod(Method method, Type type, String eventKey) {
-        this(method, type, eventKey, false, null);
+        this(method, type, eventKey, false, false, null);
     }
 
 
@@ -103,7 +111,7 @@ class EventMethod {
 
 
     private void subscribeArgs(@Nullable Object[] args, @Nullable Event event) {
-        // Correct params are: [], [Event], [Event, Params...], [Params...]
+        // Allowed parameters: [], [Event], [Event, Params...], [Params...]
 
         if (params.length > 0) {
             if (params[0] == Event.class) {

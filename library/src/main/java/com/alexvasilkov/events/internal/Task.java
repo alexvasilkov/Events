@@ -19,6 +19,8 @@ class Task implements Runnable {
     private final EventResult result;
     private final EventFailure failure;
 
+    volatile boolean isRunning;
+
     private Task(EventTarget eventTarget, EventMethod eventMethod, Event event,
                  EventStatus status, EventResult result, EventFailure failure) {
         this.eventTarget = eventTarget;
@@ -47,7 +49,10 @@ class Task implements Runnable {
 
     @Override
     public void run() {
-        if (!eventTarget.isUnregistered) run(eventTarget.target);
+        if (!eventTarget.isUnregistered) {
+            isRunning = true;
+            run(eventMethod.isStatic ? null : eventTarget.target);
+        }
     }
 
     private void run(Object target) {
@@ -118,7 +123,7 @@ class Task implements Runnable {
                 Dispatcher.postEventResult(event, methodResult);
             }
 
-            Dispatcher.postEventFinished(event);
+            Dispatcher.postTaskFinished(this);
         } else {
             if (methodError != null) {
                 throw new EventsException(Utils.toLogStr(this, "Error during execution"),

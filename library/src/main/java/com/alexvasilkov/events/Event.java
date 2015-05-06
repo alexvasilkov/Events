@@ -7,6 +7,7 @@ import com.alexvasilkov.events.internal.EventBase;
 import com.alexvasilkov.events.internal.EventsParams;
 import com.alexvasilkov.events.internal.ListUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -83,6 +84,19 @@ public class Event extends EventBase {
     }
 
 
+    /**
+     * <p>Two events are considered deeply equal if they have same key and exactly same
+     * parameters lists.</p>
+     * <p>Parameters are compared using {@link Arrays#deepEquals(Object[], Object[])}, so be sure
+     * to have correct implementation of {@link Object#equals(Object)} method for all parameters.</p>
+     * <p>If you don't want some of parameters to be compared pass them as tags using
+     * {@link Builder#tag(Object...)} builder method.</p>
+     */
+    public static boolean isDeeplyEqual(@NonNull Event e1, @NonNull Event e2) {
+        return e1 == e2 || (e1.key.equals(e2.key) && Arrays.deepEquals(e1.params, e2.params));
+    }
+
+
     public static class Builder {
 
         private final String key;
@@ -95,11 +109,21 @@ public class Event extends EventBase {
             this.key = key;
         }
 
+        /**
+         * <p>Appends event's parameters. These values can be accessed either by
+         * {@link Event#getParam(int)} method or as method's parameters of corresponding
+         * subscribed methods, see {@link Events.Subscribe} annotation.</p>
+         */
         public Builder param(Object... params) {
             this.params = ListUtils.append(this.params, params);
             return this;
         }
 
+        /**
+         * <p>Appends additional (dynamic) event's parameters. These values can be accessed only by
+         * {@link Event#getTag(int)} method.</p>
+         * <p>See {@link #param(Object...)} method.</p>
+         */
         public Builder tag(Object... tags) {
             this.tags = ListUtils.append(this.tags, tags);
             return this;
