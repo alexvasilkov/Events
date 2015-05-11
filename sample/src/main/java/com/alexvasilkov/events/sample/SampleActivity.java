@@ -37,21 +37,24 @@ public class SampleActivity extends Activity {
         Events.init(this);
         Events.setDebug(true);
 
+        Events.register(this.getClass());
         Events.register(this);
 
         Events.post(TASK_1);
         Events.create(TASK_2).param("world").post();
         Events.post(TASK_3);
 
-        new Handler().postDelayed(new Runnable() {
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Events.create(TASK_2).param("world again").post();
             }
         }, 100L);
-        new Handler().postDelayed(new Runnable() {
+        handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                // Will be skipped as it is the same as one above
                 Events.create(TASK_2).param("world again").post();
             }
         }, 500L);
@@ -66,19 +69,15 @@ public class SampleActivity extends Activity {
 
     @Background
     @Subscribe(TASK_1)
-    private int runTask_1_1() throws Exception {
+    private static int runTask_1_1() throws Exception {
         Log.d(TAG, "Task 1_1");
         SystemClock.sleep(1000);
-
-        Events.register(SampleActivity.class);
-        Events.post(TASK_3);
-
         return 1;
     }
 
     @Background
     @Subscribe(TASK_1)
-    private int runTask_1_2(Event event) throws Exception {
+    private static int runTask_1_2(Event event) throws Exception {
         Log.d(TAG, "Task 1_2");
         SystemClock.sleep(1500);
         event.postResult(2);
@@ -102,7 +101,7 @@ public class SampleActivity extends Activity {
 
     @Background(singleThread = true)
     @Subscribe(TASK_2)
-    private EventResult runTask_2(String param) throws Exception {
+    private static EventResult runTask_2(String param) throws Exception {
         SystemClock.sleep(2100);
         Log.d(TAG, "Task 2: " + param);
         return EventResult.create().result("Hello, " + param + "!").build();
@@ -121,7 +120,7 @@ public class SampleActivity extends Activity {
 
 
     @Subscribe(TASK_3)
-    private static void runStaticTask_3() {
+    private void runStaticTask_3() {
         Log.d(TAG, "Task 3");
         throw new RuntimeException("Custom exception");
     }

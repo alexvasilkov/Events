@@ -90,6 +90,9 @@ public class Events {
      * <p>Method must also be marked with {@link Subscribe} annotation.</p>
      * <p>If {@link #singleThread()} set to {@code true} then only one thread will be used to
      * execute this method. All other events targeting this method will wait until it is finished.</p>
+     * <p><b>Note</b>: method executed in background should be static to not leek object reference
+     * (i.e. Activity reference). To subscribe static methods use {@link Events#register(Object)}
+     * method with {@link Class} object.</p>
      */
     @Target({ElementType.METHOD})
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)

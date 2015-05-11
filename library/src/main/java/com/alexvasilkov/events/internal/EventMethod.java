@@ -77,6 +77,13 @@ class EventMethod {
             throw new EventsException(
                     Utils.toLogStr(eventKey, this, "Method cannot be executed in background"));
         }
+
+        // Only static methods can be executed in background, to not leak object references
+        if (isBackground && !isStatic) {
+            throw new EventsException(
+                    Utils.toLogStr(eventKey, this, "Background method should be static. " +
+                            "To subscribe static methods pass Class object to Events.register()"));
+        }
     }
 
     Object[] args(Event event, @Nullable EventStatus status, @Nullable EventResult result,
