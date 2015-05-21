@@ -70,10 +70,10 @@ public class Events {
      * received using methods annotated with {@link Failure}.</p>
      * <p><b>Allowed method parameters</b>
      * <ul>
-     * <li>{@code method()}</li>
-     * <li>{@code method(}{@link Event}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, T1, T2, ...)}</li>
-     * <li>{@code method(T1, T2, ...)}</li>
+     * <li><code>method()</code></li>
+     * <li><code>method({@link Event})</code></li>
+     * <li><code>method({@link Event}, T1, T2, ...)</code></li>
+     * <li><code>method(T1, T2, ...)</code></li>
      * </ul>
      * Where {@code T1, T2, ...} - corresponding types of values passed to
      * {@link Event.Builder#param(Object...)} method. You may also access event's parameters
@@ -123,9 +123,9 @@ public class Events {
      * </ul></p>
      * <p><b>Allowed method parameters</b>
      * <ul>
-     * <li>{@code method(}{@link Event}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, }{@link EventStatus}{@code)}</li>
-     * <li>{@code method(}{@link EventStatus}{@code)}</li>
+     * <li><code>method({@link Event})</code></li>
+     * <li><code>method({@link Event}, {@link EventStatus})</code></li>
+     * <li><code>method({@link EventStatus})</code></li>
      * </ul></p>
      */
     @Target({ElementType.METHOD})
@@ -141,12 +141,12 @@ public class Events {
      * {@link EventResult} object.</p>
      * <p><b>Allowed method parameters</b>
      * <ul>
-     * <li>{@code method()}</li>
-     * <li>{@code method(}{@link Event}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, T1, T2, ...)}</li>
-     * <li>{@code method(}{@link Event}{@code, }{@link EventResult}{@code)}</li>
-     * <li>{@code method(T1, T2, ...)}</li>
-     * <li>{@code method(}{@link EventResult}{@code)}</li>
+     * <li><code>method()</code></li>
+     * <li><code>method({@link Event})</code></li>
+     * <li><code>method({@link Event}, T1, T2, ...)</code></li>
+     * <li><code>method({@link Event}, {@link EventResult})</code></li>
+     * <li><code>method(T1, T2, ...)</code></li>
+     * <li><code>method({@link EventResult})</code></li>
      * </ul>
      * Where {@code T1, T2, ...} - corresponding types of values returned by method
      * marked with {@link Subscribe} annotation. Same values can be accessed using
@@ -163,12 +163,12 @@ public class Events {
      * with specified key on main thread.</p>
      * <p><b>Allowed method parameters</b>
      * <ul>
-     * <li>{@code method()}</li>
-     * <li>{@code method(}{@link Event}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, }{@link Throwable}{@code)}</li>
-     * <li>{@code method(}{@link Event}{@code, }{@link EventFailure}{@code)}</li>
-     * <li>{@code method(}{@link Throwable}{@code)}</li>
-     * <li>{@code method(}{@link EventFailure}{@code)}</li>
+     * <li><code>method()</code></li>
+     * <li><code>method({@link Event})</code></li>
+     * <li><code>method({@link Event}, {@link Throwable})</code></li>
+     * <li><code>method({@link Event}, {@link EventFailure})</code></li>
+     * <li><code>method({@link Throwable})</code></li>
+     * <li><code>method({@link EventFailure})</code></li>
      * </ul></p>
      * <p><b>Note</b>: You may skip event key to handle all failures of all events.</p>
      */
