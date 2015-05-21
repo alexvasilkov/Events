@@ -102,6 +102,7 @@ afterEvaluate { project ->
         classpath = files(android.bootClasspath)
         exclude "**/internal/**"
         options {
+            doctitle "${POM_NAME} ${VERSION_NAME} API"
             windowTitle "${POM_NAME} ${VERSION_NAME} API"
         }
 
