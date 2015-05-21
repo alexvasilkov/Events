@@ -92,10 +92,18 @@ afterEvaluate { project ->
         sign configurations.archives
     }
 
+    task jar(type: Jar, dependsOn: compileReleaseJava) {
+        from file(project.compileReleaseJava.destinationDir)
+        exclude '**/R.class', '**/BuildConfig.class'
+    }
+
     task javadocs(type: Javadoc) {
         source = android.sourceSets.main.java.sourceFiles
         classpath = files(android.bootClasspath)
         exclude "**/internal/**"
+        options {
+            windowTitle "${POM_NAME} ${VERSION_NAME} API"
+        }
 
         if (JavaVersion.current().isJava8Compatible()) {
             allprojects {
@@ -117,7 +125,15 @@ afterEvaluate { project ->
     }
 
     artifacts {
+        archives jar
         archives sourcesJar
         archives javadocsJar
+    }
+
+    // Excluding aar artifacts from uploading
+    configurations.archives.artifacts.with { archives ->
+        for (def iter = archives.iterator(); iter.hasNext();) {
+            if (iter.next().file =~ 'aar') iter.remove();
+        }
     }
 }
