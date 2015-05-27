@@ -101,8 +101,8 @@ afterEvaluate { project ->
         source = android.sourceSets.main.java.sourceFiles
         classpath = files(android.bootClasspath)
         exclude "**/internal/**"
+        title "${POM_NAME} ${VERSION_NAME} API"
         options {
-            doctitle "${POM_NAME} ${VERSION_NAME} API"
             windowTitle "${POM_NAME} ${VERSION_NAME} API"
         }
 
