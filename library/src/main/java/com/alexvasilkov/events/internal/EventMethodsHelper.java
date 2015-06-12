@@ -1,6 +1,5 @@
 package com.alexvasilkov.events.internal;
 
-import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -43,15 +42,16 @@ class EventMethodsHelper {
         List<EventMethod> methods = cache.get(clazz);
 
         if (methods == null) {
-            long start = SystemClock.uptimeMillis();
+            long start = System.nanoTime();
 
             methods = new ArrayList<>();
             collectMethods(clazz, methods, statics);
             cache.put(clazz, methods);
 
             if (EventsParams.isDebug()) {
-                long time = SystemClock.uptimeMillis() - start;
-                Log.d(Utils.TAG, "Collecting methods of " + clazz.getName() + " in " + time + " ms");
+                long time = System.nanoTime() - start;
+                Log.d(Utils.TAG, String.format("Collecting methods of %s in %.3f ms",
+                        clazz.getName(), time / 1e6d));
             }
         }
 
