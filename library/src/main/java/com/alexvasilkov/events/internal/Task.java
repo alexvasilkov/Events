@@ -64,19 +64,14 @@ class Task implements Runnable {
         if (eventMethod.cache != null) {
             try {
                 EventResult cachedResult = eventMethod.cache.loadFromCache(event);
-                boolean isCacheExpired = eventMethod.cache.isCacheExpired(event);
 
-                Utils.log(this, "Cached value is loaded");
-
-                // Ignoring null cached result if cache is expired (means cache was not yet loaded)
-
-                if (cachedResult != null || !isCacheExpired) {
+                if (cachedResult != null) {
+                    Utils.log(this, "Cached result is loaded");
                     Dispatcher.postEventResult(event, cachedResult);
+                    isShouldCallMethod = false;
+                } else {
+                    Utils.log(this, "No cached result");
                 }
-
-                Utils.log(this, isCacheExpired ? "Cache is expired" : "Cache is valid");
-
-                isShouldCallMethod = isCacheExpired;
             } catch (Throwable e) {
                 methodError = e;
             }
@@ -91,7 +86,13 @@ class Task implements Runnable {
                 if (returnedResult instanceof EventResult) {
                     methodResult = (EventResult) returnedResult;
                 } else if (returnedResult == null) {
-                    methodResult = EventResult.EMPTY;
+                    if (eventMethod.hasReturnType) {
+                        // Method returned a value, but it's null
+                        methodResult = EventResult.EMPTY;
+                    } else {
+                        // Method does not have return statement
+                        methodResult = null;
+                    }
                 } else {
                     methodResult = EventResult.create().result(returnedResult).build();
                 }
@@ -105,7 +106,7 @@ class Task implements Runnable {
         }
 
         // Storing result in cache
-        if (eventMethod.cache != null && methodError == null) {
+        if (eventMethod.cache != null && methodResult != null) {
             try {
                 eventMethod.cache.saveToCache(event, methodResult);
             } catch (Throwable e) {
@@ -119,7 +120,7 @@ class Task implements Runnable {
                 Utils.logE(this, "Error during execution", methodError);
 
                 Dispatcher.postEventFailure(event, EventFailure.create(methodError));
-            } else if (eventMethod.hasReturnType) {
+            } else if (methodResult != null) {
                 Dispatcher.postEventResult(event, methodResult);
             }
 

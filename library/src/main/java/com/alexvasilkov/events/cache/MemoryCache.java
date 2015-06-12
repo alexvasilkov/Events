@@ -37,25 +37,19 @@ public class MemoryCache implements CacheProvider {
     public EventResult loadFromCache(@NonNull Event event) {
         synchronized (CACHE) {
             CacheEntry entry = CACHE.get(toCacheKey(event));
-            return entry == null ? null : entry.result;
+            boolean expired = entry == null || entry.expires < SystemClock.uptimeMillis();
+            return entry == null || expired ? null : entry.result;
         }
     }
 
     @Override
     public void saveToCache(@NonNull Event event, EventResult result) {
         synchronized (CACHE) {
-            long expires = SystemClock.uptimeMillis() + maxLifetime;
+            long expires = maxLifetime == NO_TIME_LIMIT
+                    ? Long.MAX_VALUE : SystemClock.uptimeMillis() + maxLifetime;
             CACHE.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
             if (isClearExpired) HANDLER.sendEmptyMessageAtTime(0, expires + 10);
         }
-    }
-
-    @Override
-    public boolean isCacheExpired(@NonNull Event event) throws Exception {
-        CacheEntry entry = CACHE.get(toCacheKey(event));
-
-        long now = SystemClock.uptimeMillis();
-        return entry == null || (maxLifetime != NO_TIME_LIMIT && entry.expires < now);
     }
 
     protected String toCacheKey(@NonNull Event event) {
@@ -92,7 +86,8 @@ public class MemoryCache implements CacheProvider {
         public void handleMessage(@NonNull Message msg) {
             synchronized (CACHE) {
                 long now = SystemClock.uptimeMillis();
-                for (Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator(); iterator.hasNext(); ) {
+                Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator();
+                while (iterator.hasNext()) {
                     CacheEntry entry = iterator.next().getValue();
                     if (entry.isClearExpired && entry.expires < now) iterator.remove();
                 }

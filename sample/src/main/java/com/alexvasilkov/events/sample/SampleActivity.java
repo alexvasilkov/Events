@@ -13,10 +13,12 @@ import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
 import com.alexvasilkov.events.Events;
 import com.alexvasilkov.events.Events.Background;
+import com.alexvasilkov.events.Events.Cache;
 import com.alexvasilkov.events.Events.Failure;
 import com.alexvasilkov.events.Events.Result;
 import com.alexvasilkov.events.Events.Status;
 import com.alexvasilkov.events.Events.Subscribe;
+import com.alexvasilkov.events.cache.MemoryCache;
 
 public class SampleActivity extends Activity {
 
@@ -37,7 +39,7 @@ public class SampleActivity extends Activity {
         Events.init(this);
         Events.setDebug(true);
 
-        Events.register(this.getClass());
+        Events.register(SampleActivity.class);
         Events.register(this);
 
         Events.post(TASK_1);
@@ -100,6 +102,7 @@ public class SampleActivity extends Activity {
 
 
     @Background(singleThread = true)
+    @Cache(MemoryCache.class)
     @Subscribe(TASK_2)
     private static EventResult runTask_2(String param) throws Exception {
         SystemClock.sleep(2100);

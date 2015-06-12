@@ -11,6 +11,4 @@ public interface CacheProvider {
 
     void saveToCache(@NonNull Event event, EventResult result) throws Exception;
 
-    boolean isCacheExpired(@NonNull Event event) throws Exception;
-
 }
