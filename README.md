@@ -1,13 +1,15 @@
 Events
 ======
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
+
 Alternative events bus implementation for Android
 
 #### Usage ####
 
 Gradle dependency:
 
-    compile 'com.alexvasilkov:events:0.3.1'
+    compile 'com.alexvasilkov:events:0.4.0'
 
 [Javadoc](http://javadoc-badge.appspot.com/com.alexvasilkov/events) documentation.
 
