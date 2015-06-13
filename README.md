@@ -11,7 +11,7 @@ Gradle dependency:
 
     compile 'com.alexvasilkov:events:0.4.0'
 
-[Javadoc](http://javadoc-badge.appspot.com/com.alexvasilkov/events) documentation.
+[Javadoc](https://oss.sonatype.org/service/local/repositories/releases/archive/com/alexvasilkov/events/0.4.0/events-0.4.0-javadoc.jar/!/index.html) documentation.
 
 TODO: add usage examples
 
