@@ -1,7 +1,7 @@
 Events
 ======
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
+[![Maven Central](https://img.shields.io/maven-central/v/com.alexvasilkov/events.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
 
 Alternative events bus implementation for Android
 
