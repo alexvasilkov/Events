@@ -9,9 +9,9 @@ Alternative events bus implementation for Android
 
 Gradle dependency:
 
-    compile 'com.alexvasilkov:events:0.4.0'
+    compile 'com.alexvasilkov:events:0.5.0-beta-1'
 
-[Javadoc](https://oss.sonatype.org/service/local/repositories/releases/archive/com/alexvasilkov/events/0.4.0/events-0.4.0-javadoc.jar/!/index.html) documentation.
+[Javadoc](https://oss.sonatype.org/service/local/repositories/releases/archive/com/alexvasilkov/events/0.5.0-beta-1/events-0.5.0-beta-1-javadoc.jar/!/index.html) documentation.
 
 TODO: add usage examples
 
