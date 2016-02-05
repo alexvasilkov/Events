@@ -33,6 +33,7 @@ public class Dispatcher {
     private static final MainThreadHandler MAIN_THREAD = new MainThreadHandler();
     private static final ExecutorService BACKGROUND_EXECUTOR = Executors.newCachedThreadPool();
 
+    private static boolean isExecuting;
 
     // Registers events target
     public static void register(Object target) {
@@ -65,8 +66,8 @@ public class Dispatcher {
     }
 
     // Schedules tasks execution on main thread
-    private static void executeDelayed() {
-        MAIN_THREAD.execute();
+    private static void execute(boolean delay) {
+        MAIN_THREAD.execute(delay);
     }
 
 
@@ -118,7 +119,9 @@ public class Dispatcher {
                         }
                     }
 
-                    if (skipEvent) continue;
+                    if (skipEvent) {
+                        continue;
+                    }
 
                     Utils.log(event.getKey(), m, "Scheduling event execution");
 
@@ -161,7 +164,8 @@ public class Dispatcher {
         // Sending failure callback to general handlers (with no particular event key)
         for (EventTarget t : TARGETS) {
             for (EventMethod m : t.methods) {
-                if (EventsParams.EMPTY_KEY.equals(m.eventKey) && m.type == EventMethod.Type.FAILURE) {
+                if (EventsParams.EMPTY_KEY.equals(m.eventKey) &&
+                        m.type == EventMethod.Type.FAILURE) {
                     Utils.log(event.getKey(), m, "Scheduling general failure callback");
                     EXECUTION_QUEUE.add(Task.create(t, m, event, failure));
                 }
@@ -172,7 +176,9 @@ public class Dispatcher {
 
     // Handling registration on main thread
     private static void handleRegistration(Object target) {
-        if (target == null) throw new NullPointerException("Target cannot be null");
+        if (target == null) {
+            throw new NullPointerException("Target cannot be null");
+        }
 
         for (EventTarget eventTarget : TARGETS) {
             if (eventTarget.target == target) {
@@ -184,16 +190,19 @@ public class Dispatcher {
         EventTarget eventTarget = new EventTarget(target);
         TARGETS.add(eventTarget);
 
-        if (EventsParams.isDebug())
+        if (EventsParams.isDebug()) {
             Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Registered");
+        }
 
         scheduleStatusUpdates(eventTarget, EventStatus.STARTED);
-        executeDelayed();
+        execute(false);
     }
 
     // Handling un-registration on main thread
     private static void handleUnRegistration(Object target) {
-        if (target == null) throw new NullPointerException("Target cannot be null");
+        if (target == null) {
+            throw new NullPointerException("Target cannot be null");
+        }
 
         boolean isUnregistered = false;
 
@@ -207,11 +216,13 @@ public class Dispatcher {
             }
         }
 
-        if (!isUnregistered)
+        if (!isUnregistered) {
             Log.e(Utils.TAG, "Target " + Utils.classToString(target) + " was not registered");
+        }
 
-        if (EventsParams.isDebug())
+        if (EventsParams.isDebug()) {
             Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Unregistered");
+        }
     }
 
     // Handling event posting on main thread
@@ -226,10 +237,12 @@ public class Dispatcher {
         if (((EventBase) event).handlersCount == 0) {
             Utils.log(event.getKey(), "No subscribers found");
             // Removing all scheduled STARTED status callbacks
-            while (EXECUTION_QUEUE.size() > sizeBefore) EXECUTION_QUEUE.removeLast();
+            while (EXECUTION_QUEUE.size() > sizeBefore) {
+                EXECUTION_QUEUE.removeLast();
+            }
         } else {
             ACTIVE_EVENTS.add(event);
-            executeDelayed();
+            execute(false);
         }
     }
 
@@ -241,7 +254,7 @@ public class Dispatcher {
         }
 
         scheduleResultCallbacks(event, result);
-        executeDelayed();
+        execute(false);
     }
 
     // Handling event failure on main thread
@@ -252,7 +265,7 @@ public class Dispatcher {
         }
 
         scheduleFailureCallbacks(event, failure);
-        executeDelayed();
+        execute(false);
     }
 
     // Handling finished event on main thread
@@ -277,27 +290,33 @@ public class Dispatcher {
             // No more running handlers
             ACTIVE_EVENTS.remove(event);
             scheduleStatusUpdates(event, EventStatus.FINISHED);
-            executeDelayed();
+            execute(false);
         }
     }
 
     // Handling scheduled execution tasks on main thread
     private static void handleTasksExecution() {
-        if (EXECUTION_QUEUE.isEmpty()) return; // Nothing to dispatch
+        if (isExecuting || EXECUTION_QUEUE.isEmpty()) {
+            return; // Nothing to dispatch
+        }
 
-        if (EventsParams.isDebug()) Log.d(Utils.TAG, "Dispatching: started");
+        isExecuting = true;
+
+        if (EventsParams.isDebug()) {
+            Log.d(Utils.TAG, "Dispatching: started");
+        }
 
         long started = SystemClock.uptimeMillis();
 
-        for (Iterator<Task> iterator = EXECUTION_QUEUE.iterator(); iterator.hasNext(); ) {
-            final Task task = iterator.next();
-
-            if (task.eventTarget.isUnregistered) continue; // Target is unregistered
+        Task task;
+        while ((task = pollExecutionTask()) != null) {
+            if (task.eventTarget.isUnregistered) {
+                continue; // Target is unregistered
+            }
 
             if (task.eventMethod.isBackground) {
                 if (task.eventMethod.isSingleThread) {
                     if (task.eventMethod.isInUse) {
-                        Utils.log(task, "Single-thread method is already in use, waiting");
                         continue;
                     } else {
                         Utils.log(task, "Single-thread method is in use now");
@@ -309,25 +328,38 @@ public class Dispatcher {
                 BACKGROUND_EXECUTOR.execute(task);
             } else {
                 Utils.log(task, "Executing");
-
                 task.run();
             }
-
-            iterator.remove();
 
             // Checking that we are not spending to much time on main thread
             long time = SystemClock.uptimeMillis() - started;
 
             if (time > MAX_TIME_IN_MAIN_THREAD) {
-                if (EventsParams.isDebug())
+                if (EventsParams.isDebug()) {
                     Log.d(Utils.TAG, "Dispatching: time in main thread "
                             + time + " ms > " + MAX_TIME_IN_MAIN_THREAD + " ms");
-                executeDelayed();
+                }
+                execute(true);
                 break;
             }
         }
 
-        if (EventsParams.isDebug()) Log.d(Utils.TAG, "Dispatching: finished");
+        if (EventsParams.isDebug()) {
+            Log.d(Utils.TAG, "Dispatching: finished");
+        }
+
+        isExecuting = false;
+    }
+
+    private static Task pollExecutionTask() {
+        for (int i = 0, size = EXECUTION_QUEUE.size(); i < size; i++) {
+            Task task = EXECUTION_QUEUE.get(i);
+            if (!task.eventMethod.isBackground || !task.eventMethod.isSingleThread
+                    || !task.eventMethod.isInUse) {
+                return EXECUTION_QUEUE.remove(i);
+            }
+        }
+        return null;
     }
 
 
@@ -350,44 +382,54 @@ public class Dispatcher {
         }
 
         void register(Object target) {
-            sendMessage(obtainMessage(MSG_REGISTER, target)); // No delays for registration
+            sendDelayed(MSG_REGISTER, target, false);
         }
 
         void unregister(Object target) {
-            sendMessage(obtainMessage(MSG_UNREGISTER, target)); // No delays for un-registration
+            sendDelayed(MSG_UNREGISTER, target, false);
         }
 
-        void execute() {
-            if (!hasMessages(MSG_EXECUTE)) sendEmptyMessageDelayed(MSG_EXECUTE, MESSAGE_DELAY);
+        void execute(boolean delay) {
+            sendDelayed(MSG_EXECUTE, null, delay);
         }
 
         void postEvent(Event event) {
-            sendMessageDelayed(obtainMessage(MSG_POST_EVENT, event), MESSAGE_DELAY);
+            sendDelayed(MSG_POST_EVENT, event, false);
         }
 
         void postEventResult(Event event, EventResult result) {
-            Object[] data = new Object[]{event, result};
-            sendMessageDelayed(obtainMessage(MSG_POST_EVENT_RESULT, data), MESSAGE_DELAY);
+            sendDelayed(MSG_POST_EVENT_RESULT, new Object[] { event, result }, false);
         }
 
         void postEventFailure(Event event, EventFailure failure) {
-            Object[] data = new Object[]{event, failure};
-            sendMessageDelayed(obtainMessage(MSG_POST_EVENT_FAILURE, data), MESSAGE_DELAY);
+            sendDelayed(MSG_POST_EVENT_FAILURE, new Object[] { event, failure }, false);
         }
 
         void postTaskFinished(Task task) {
-            sendMessageDelayed(obtainMessage(MSG_POST_TASK_FINISHED, task), MESSAGE_DELAY);
+            sendDelayed(MSG_POST_TASK_FINISHED, task, false);
+        }
+
+        private void sendDelayed(int msgId, Object data, boolean forceDelay) {
+            if (!forceDelay && Looper.getMainLooper().getThread() == Thread.currentThread()) {
+                handleMessageId(msgId, data);
+            } else {
+                sendMessageDelayed(obtainMessage(msgId, data), MESSAGE_DELAY);
+            }
         }
 
         @Override
         public void handleMessage(@NonNull Message msg) {
-            switch (msg.what) {
+            handleMessageId(msg.what, msg.obj);
+        }
+
+        private void handleMessageId(int msgId, Object obj) {
+            switch (msgId) {
                 case MSG_REGISTER: {
-                    handleRegistration(msg.obj);
+                    handleRegistration(obj);
                     break;
                 }
                 case MSG_UNREGISTER: {
-                    handleUnRegistration(msg.obj);
+                    handleUnRegistration(obj);
                     break;
                 }
                 case MSG_EXECUTE: {
@@ -395,21 +437,21 @@ public class Dispatcher {
                     break;
                 }
                 case MSG_POST_EVENT: {
-                    handleEventPost((Event) msg.obj);
+                    handleEventPost((Event) obj);
                     break;
                 }
                 case MSG_POST_EVENT_RESULT: {
-                    Object[] data = (Object[]) msg.obj;
+                    Object[] data = (Object[]) obj;
                     handleEventResult((Event) data[0], (EventResult) data[1]);
                     break;
                 }
                 case MSG_POST_EVENT_FAILURE: {
-                    Object[] data = (Object[]) msg.obj;
+                    Object[] data = (Object[]) obj;
                     handleEventFailure((Event) data[0], (EventFailure) data[1]);
                     break;
                 }
                 case MSG_POST_TASK_FINISHED: {
-                    handleTaskFinished((Task) msg.obj);
+                    handleTaskFinished((Task) obj);
                     break;
                 }
             }
