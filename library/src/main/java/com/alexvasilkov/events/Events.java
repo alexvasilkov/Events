@@ -13,24 +13,22 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * TODO: documentation
+ * TODO: documentation.
  */
 public class Events {
 
-    private static boolean isInitialized;
+    private Events() {
+        // No instances
+    }
 
     /**
-     * Initializes event bus
+     * Initializes event bus.
+     *
+     * @deprecated This method does nothing, do not use it.
      */
-    public static void init(@NonNull Context context) {
-        isInitialized = true;
-        EventsParams.setContext(context.getApplicationContext());
-    }
-
-    private static void checkInit() {
-        if (!isInitialized)
-            throw new EventsException("Events.init() method should be called before using Events");
-    }
+    @Deprecated
+    @SuppressWarnings("unused")
+    public static void init(@NonNull Context context) {}
 
     public static void setDebug(boolean isDebug) {
         EventsParams.setDebug(isDebug);
@@ -38,12 +36,10 @@ public class Events {
 
 
     public static void register(@NonNull Object target) {
-        checkInit();
         Dispatcher.register(target);
     }
 
     public static void unregister(@NonNull Object target) {
-        checkInit();
         Dispatcher.unregister(target);
     }
 
@@ -57,10 +53,12 @@ public class Events {
 
 
     /**
-     * <p>Method marked with this annotation will receive events with specified key on main thread.</p>
+     * <p>Method marked with this annotation will receive events with specified key on main thread.
+     * </p>
      * <p>See {@link Background} annotation if you want to receive events on background thread.</p>
      * <p>See {@link Cache} annotation if you want to use cache feature.</p>
-     * <p>You may listen for event's execution status using methods annotated with {@link Status}.</p>
+     * <p>You may listen for event's execution status using methods annotated with {@link Status}.
+     * </p>
      * <p>Object returned from this method will be sent to the bus and can be received by anyone
      * using methods annotated with {@link Result}.<br>
      * You can return {@link EventResult} object which can contain several values.<br>
@@ -79,7 +77,7 @@ public class Events {
      * {@link Event.Builder#param(Object...)} method. You may also access event's parameters
      * using {@link Event#getParam(int)} method.</p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Subscribe {
         String value();
@@ -89,12 +87,13 @@ public class Events {
      * <p>Method marked with this annotation will receive events on background thread.</p>
      * <p>Method must also be marked with {@link Subscribe} annotation.</p>
      * <p>If {@link #singleThread()} set to {@code true} then only one thread will be used to
-     * execute this method. All other events targeting this method will wait until it is finished.</p>
+     * execute this method. All other events targeting this method will wait until it is finished.
+     * </p>
      * <p><b>Note</b>: method executed in background should be static to not leek object reference
      * (i.e. Activity reference). To subscribe static methods use {@link Events#register(Object)}
      * method with {@link Class} object.</p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Background {
         boolean singleThread() default false;
@@ -105,7 +104,7 @@ public class Events {
      * class to handle results caching. See also {@link MemoryCache} implementation.</p>
      * <p>Method must also be marked with {@link Subscribe} annotation.</p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Cache {
         Class<? extends CacheProvider> value();
@@ -128,7 +127,7 @@ public class Events {
      * <li><code>method({@link EventStatus})</code></li>
      * </ul></p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Status {
         String value();
@@ -152,7 +151,7 @@ public class Events {
      * marked with {@link Subscribe} annotation. Same values can be accessed using
      * {@link EventResult#getResult(int)} method.</p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Result {
         String value();
@@ -172,7 +171,7 @@ public class Events {
      * </ul></p>
      * <p><b>Note</b>: You may skip event key to handle all failures of all events.</p>
      */
-    @Target({ElementType.METHOD})
+    @Target({ ElementType.METHOD })
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
     public @interface Failure {
         String value() default EventsParams.EMPTY_KEY;

@@ -22,8 +22,12 @@ import java.util.Map;
 
 class EventMethodsHelper {
 
-    private static final Map<Class<?>, List<EventMethod>> CACHE_STATIC = new HashMap<>();
-    private static final Map<Class<?>, List<EventMethod>> CACHE_INSTANCE = new HashMap<>();
+    private static final Map<Class<?>, List<EventMethod>> cacheStatic = new HashMap<>();
+    private static final Map<Class<?>, List<EventMethod>> cacheInstance = new HashMap<>();
+
+    private EventMethodsHelper() {
+        // No instances
+    }
 
     /**
      * Returns list of annotated methods for given class.
@@ -38,7 +42,7 @@ class EventMethodsHelper {
     }
 
     private static List<EventMethod> getMethodsFromClass(Class<?> clazz, boolean statics) {
-        Map<Class<?>, List<EventMethod>> cache = statics ? CACHE_STATIC : CACHE_INSTANCE;
+        Map<Class<?>, List<EventMethod>> cache = statics ? cacheStatic : cacheInstance;
         List<EventMethod> methods = cache.get(clazz);
 
         if (methods == null) {
@@ -50,8 +54,8 @@ class EventMethodsHelper {
 
             if (EventsParams.isDebug()) {
                 long time = System.nanoTime() - start;
-                Log.d(Utils.TAG, String.format("Collecting methods of %s in %.3f ms",
-                        clazz.getName(), time / 1e6d));
+                Log.d(Utils.TAG, String.format("Collecting %d methods of %s in %.3f ms",
+                        methods.size(), clazz.getName(), time / 1e6d));
             }
         }
 
@@ -60,21 +64,24 @@ class EventMethodsHelper {
 
     private static void collectMethods(Class<?> clazz, List<EventMethod> list, boolean statics) {
         // Ignoring system classes
-        if (clazz.getName().startsWith("android.") || clazz.getName().startsWith("java.")) return;
+        if (clazz.getName().startsWith("android.") || clazz.getName().startsWith("java.")) {
+            return;
+        }
 
         // Looking for methods annotated as event handlers
         Method[] methods = clazz.getDeclaredMethods();
         EventMethod info;
 
         for (Method m : methods) {
-            if (Modifier.isStatic(m.getModifiers()) != statics) continue;
+            if (Modifier.isStatic(m.getModifiers()) != statics) {
+                continue;
+            }
 
             info = null;
 
             if (m.isAnnotationPresent(Subscribe.class)) {
 
-                checkNoAnnotations(m, Subscribe.class,
-                        Status.class, Result.class, Failure.class);
+                checkNoAnnotations(m, Subscribe.class, Status.class, Result.class, Failure.class);
 
                 // No method's parameters check is required here since any combination is valid
 
@@ -89,61 +96,70 @@ class EventMethodsHelper {
 
             } else if (m.isAnnotationPresent(Status.class)) {
 
-                checkNoAnnotations(m, Status.class,
-                        Subscribe.class, Background.class, Cache.class, Result.class, Failure.class);
+                checkNoAnnotations(m, Status.class, Subscribe.class, Background.class, Cache.class,
+                        Result.class, Failure.class);
 
                 String key = m.getAnnotation(Status.class).value();
                 info = new EventMethod(m, EventMethod.Type.STATUS, key);
 
             } else if (m.isAnnotationPresent(Result.class)) {
 
-                checkNoAnnotations(m, Result.class,
-                        Subscribe.class, Background.class, Cache.class, Status.class, Failure.class);
+                checkNoAnnotations(m, Result.class, Subscribe.class, Background.class, Cache.class,
+                        Status.class, Failure.class);
 
                 String key = m.getAnnotation(Result.class).value();
                 info = new EventMethod(m, EventMethod.Type.RESULT, key);
 
             } else if (m.isAnnotationPresent(Failure.class)) {
 
-                checkNoAnnotations(m, Failure.class,
-                        Subscribe.class, Background.class, Cache.class, Status.class, Result.class);
+                checkNoAnnotations(m, Failure.class, Subscribe.class, Background.class, Cache.class,
+                        Status.class, Result.class);
 
                 String key = m.getAnnotation(Failure.class).value();
                 info = new EventMethod(m, EventMethod.Type.FAILURE, key);
 
             }
 
-            if (info != null) list.add(info);
+            if (info != null) {
+                list.add(info);
+            }
         }
 
-        if (clazz.getSuperclass() != null) collectMethods(clazz.getSuperclass(), list, statics);
+        if (clazz.getSuperclass() != null) {
+            collectMethods(clazz.getSuperclass(), list, statics);
+        }
     }
 
 
     // Checks that no given annotations are present on given method
     @SafeVarargs
     private static void checkNoAnnotations(Method method, Class<? extends Annotation> foundAn,
-                                           Class<? extends Annotation>... disallowedAn) {
+            Class<? extends Annotation>... disallowedAn) {
+
         for (Class<? extends Annotation> an : disallowedAn) {
-            if (method.isAnnotationPresent(an))
+            if (method.isAnnotationPresent(an)) {
                 throw new EventsException("Method " + Utils.methodToString(method)
                         + " marked with " + foundAn.getSimpleName()
                         + " cannot be marked with " + an.getSimpleName());
+            }
         }
     }
 
     // Retrieves cache provider instance for method
-    private static CacheProvider getCacheProvider(Method m) {
-        if (!m.isAnnotationPresent(Cache.class)) return null;
+    private static CacheProvider getCacheProvider(Method javaMethod) {
+        if (!javaMethod.isAnnotationPresent(Cache.class)) {
+            return null;
+        }
 
-        Cache an = m.getAnnotation(Cache.class);
+        Cache an = javaMethod.getAnnotation(Cache.class);
         Class<? extends CacheProvider> cacheClazz = an.value();
 
         try {
             return cacheClazz.newInstance();
         } catch (Exception e) {
             throw new EventsException("Cannot instantiate cache provider "
-                    + cacheClazz.getSimpleName() + " for method " + Utils.methodToString(m), e);
+                    + cacheClazz.getSimpleName() + " for method "
+                    + Utils.methodToString(javaMethod), e);
         }
     }
 

@@ -4,6 +4,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.alexvasilkov.events.EventsException;
+
 import java.lang.reflect.Method;
 
 class Utils {
@@ -12,30 +14,51 @@ class Utils {
 
     @NonNull
     static String classToString(@Nullable Object obj) {
-        return obj == null ? "null" : (obj instanceof Class ?
-                ((Class<?>) obj).getSimpleName() + ".class" : obj.getClass().getSimpleName());
+        return obj == null ? "null" : (obj instanceof Class
+                ? ((Class<?>) obj).getSimpleName() + ".class" : obj.getClass().getSimpleName());
     }
 
     @NonNull
-    static String methodToString(@NonNull Method m) {
-        return m.getDeclaringClass().getSimpleName() + "." + m.getName() + "()";
+    static String methodToString(@NonNull Method javaMethod) {
+        return javaMethod.getDeclaringClass().getSimpleName() + "." + javaMethod.getName() + "()";
     }
 
+    // Logs target object
+    static void log(Object targetObj, String msg) {
+        if (EventsParams.isDebug()) {
+            Log.d(TAG, toLogStr(targetObj, msg));
+        }
+    }
+
+    // Logs event
+    static void log(String msg) {
+        if (EventsParams.isDebug()) {
+            Log.d(TAG, msg);
+        }
+    }
 
     // Logs event
     static void log(String eventKey, String msg) {
-        if (EventsParams.isDebug())
+        if (EventsParams.isDebug()) {
             Log.d(TAG, toLogStr(eventKey, msg));
+        }
     }
 
     // Logs event and method
-    static void log(String eventKey, EventMethod m, String msg) {
-        if (EventsParams.isDebug()) Log.d(TAG, toLogStr(eventKey, m, msg));
+    static void log(String eventKey, EventMethod method, String msg) {
+        if (EventsParams.isDebug()) {
+            Log.d(TAG, toLogStr(eventKey, method, msg));
+        }
     }
 
     // Logs action (event and method)
     static void log(Task action, String msg) {
-        log(action.event.getKey(), action.eventMethod, msg);
+        log(action.event.getKey(), action.method, msg);
+    }
+
+    // Logs target object error
+    static void logE(Object targetObj, String msg) {
+        Log.e(TAG, toLogStr(targetObj, msg));
     }
 
     // Logs event error
@@ -48,19 +71,32 @@ class Utils {
         Log.e(TAG, toLogStr(action, msg), error);
     }
 
-    static String toLogStr(String eventKey, String msg) {
+
+    static EventsException toException(String eventKey, EventMethod method, String msg) {
+        return new EventsException(toLogStr(eventKey, method, msg));
+    }
+
+    static EventsException toException(Task action, String msg, Throwable throwable) {
+        return new EventsException(toLogStr(action, msg), throwable);
+    }
+
+
+    private static String toLogStr(Object targetObj, String msg) {
+        return "Target " + Utils.classToString(targetObj) + " | " + msg;
+    }
+
+    private static String toLogStr(String eventKey, String msg) {
         return "Event " + eventKey + " | " + msg;
     }
 
-    static String toLogStr(String eventKey, EventMethod m, String msg) {
-        return "Event " + eventKey + " | " + m.type + " method " + Utils.methodToString(m.method) +
-                " | " + msg;
+    private static String toLogStr(String eventKey, EventMethod method, String msg) {
+        return "Event " + eventKey + " | " + method.type + " method "
+                + Utils.methodToString(method.javaMethod) + " | " + msg;
     }
 
-    static String toLogStr(Task action, String msg) {
-        return toLogStr(action.event.getKey(), action.eventMethod, msg);
+    private static String toLogStr(Task action, String msg) {
+        return toLogStr(action.event.getKey(), action.method, msg);
     }
-
 
     private Utils() {
         // No instances

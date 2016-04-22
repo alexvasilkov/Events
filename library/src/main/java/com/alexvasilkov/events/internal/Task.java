@@ -4,14 +4,13 @@ import com.alexvasilkov.events.Event;
 import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
-import com.alexvasilkov.events.EventsException;
 
 import java.lang.reflect.InvocationTargetException;
 
 class Task implements Runnable {
 
-    final EventTarget eventTarget;
-    final EventMethod eventMethod;
+    final EventTarget target;
+    final EventMethod method;
     final Event event;
 
     // Optional values
@@ -21,49 +20,49 @@ class Task implements Runnable {
 
     volatile boolean isRunning;
 
-    private Task(EventTarget eventTarget, EventMethod eventMethod, Event event,
-                 EventStatus status, EventResult result, EventFailure failure) {
-        this.eventTarget = eventTarget;
-        this.eventMethod = eventMethod;
+    private Task(EventTarget target, EventMethod method, Event event,
+            EventStatus status, EventResult result, EventFailure failure) {
+        this.target = target;
+        this.method = method;
         this.event = event;
         this.status = status;
         this.result = result;
         this.failure = failure;
     }
 
-    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event) {
-        return new Task(eventTarget, eventMethod, event, null, null, null);
+    static Task create(EventTarget target, EventMethod method, Event event) {
+        return new Task(target, method, event, null, null, null);
     }
 
-    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event, EventStatus status) {
-        return new Task(eventTarget, eventMethod, event, status, null, null);
+    static Task create(EventTarget target, EventMethod method, Event event, EventStatus status) {
+        return new Task(target, method, event, status, null, null);
     }
 
-    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event, EventResult result) {
-        return new Task(eventTarget, eventMethod, event, null, result, null);
+    static Task create(EventTarget target, EventMethod method, Event event, EventResult result) {
+        return new Task(target, method, event, null, result, null);
     }
 
-    static Task create(EventTarget eventTarget, EventMethod eventMethod, Event event, EventFailure failure) {
-        return new Task(eventTarget, eventMethod, event, null, null, failure);
+    static Task create(EventTarget target, EventMethod method, Event event, EventFailure failure) {
+        return new Task(target, method, event, null, null, failure);
     }
 
     @Override
     public void run() {
-        if (!eventTarget.isUnregistered) {
+        if (!target.isUnregistered) {
             isRunning = true;
-            run(eventMethod.isStatic ? null : eventTarget.target);
+            run(method.isStatic ? null : target.targetObj);
         }
     }
 
-    private void run(Object target) {
+    private void run(Object targetObj) {
         boolean isShouldCallMethod = true;
         Throwable methodError = null;
         EventResult methodResult = null;
 
         // Asking cache provider for cached result
-        if (eventMethod.cache != null) {
+        if (method.cache != null) {
             try {
-                EventResult cachedResult = eventMethod.cache.loadFromCache(event);
+                EventResult cachedResult = method.cache.loadFromCache(event);
 
                 if (cachedResult != null) {
                     Utils.log(this, "Cached result is loaded");
@@ -80,13 +79,13 @@ class Task implements Runnable {
         // Calling actual method
         if (isShouldCallMethod && methodError == null) {
             try {
-                Object[] args = eventMethod.args(event, status, result, failure);
-                Object returnedResult = eventMethod.method.invoke(target, args);
+                Object[] args = method.args(event, status, result, failure);
+                Object returnedResult = method.javaMethod.invoke(targetObj, args);
 
                 if (returnedResult instanceof EventResult) {
                     methodResult = (EventResult) returnedResult;
                 } else if (returnedResult == null) {
-                    if (eventMethod.hasReturnType) {
+                    if (method.hasReturnType) {
                         // Method returned a value, but it's null
                         methodResult = EventResult.EMPTY;
                     } else {
@@ -101,21 +100,21 @@ class Task implements Runnable {
             } catch (InvocationTargetException e) {
                 methodError = e.getTargetException();
             } catch (Throwable e) {
-                throw new EventsException(Utils.toLogStr(this, "Cannot invoke method"), e);
+                throw Utils.toException(this, "Cannot invoke method", e);
             }
         }
 
         // Storing result in cache
-        if (eventMethod.cache != null && methodResult != null) {
+        if (method.cache != null && methodResult != null) {
             try {
-                eventMethod.cache.saveToCache(event, methodResult);
+                method.cache.saveToCache(event, methodResult);
             } catch (Throwable e) {
                 methodError = e;
             }
         }
 
         // Sending back results
-        if (eventMethod.type == EventMethod.Type.SUBSCRIBE) {
+        if (method.type == EventMethod.Type.SUBSCRIBE) {
             if (methodError != null) {
                 Utils.logE(this, "Error during execution", methodError);
 
@@ -127,8 +126,7 @@ class Task implements Runnable {
             Dispatcher.postTaskFinished(this);
         } else {
             if (methodError != null) {
-                throw new EventsException(Utils.toLogStr(this, "Error during execution"),
-                        methodError);
+                throw Utils.toException(this, "Error during execution", methodError);
             }
         }
     }

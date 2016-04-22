@@ -8,7 +8,8 @@ public class EventResult {
 
     public static final EventResult EMPTY = new EventResult(null, null);
 
-    private final Object[] results, tags;
+    private final Object[] results;
+    private final Object[] tags;
 
     EventResult(Object[] results, Object[] tags) {
         this.results = results;
@@ -47,7 +48,8 @@ public class EventResult {
 
     public static class Builder {
 
-        private List<Object> results, tags;
+        private List<Object> results;
+        private List<Object> tags;
 
         Builder() {
             // Hidden constructor

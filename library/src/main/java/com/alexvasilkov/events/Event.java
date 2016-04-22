@@ -15,7 +15,8 @@ public class Event extends EventBase {
 
     private final String uniqueId;
     private final String key;
-    private final Object[] params, tags;
+    private final Object[] params;
+    private final Object[] tags;
 
     Event(String key, Object[] params, Object[] tags) {
         this.uniqueId = UUID.randomUUID().toString();
@@ -88,7 +89,8 @@ public class Event extends EventBase {
      * <p>Two events are considered deeply equal if they have same key and exactly same
      * parameters lists.</p>
      * <p>Parameters are compared using {@link Arrays#deepEquals(Object[], Object[])}, so be sure
-     * to have correct implementation of {@link Object#equals(Object)} method for all parameters.</p>
+     * to
+     * have correct implementation of {@link Object#equals(Object)} method for all parameters.</p>
      * <p>If you don't want some of parameters to be compared pass them as tags using
      * {@link Builder#tag(Object...)} builder method.</p>
      */
@@ -100,11 +102,14 @@ public class Event extends EventBase {
     public static class Builder {
 
         private final String key;
-        private List<Object> params, tags;
+        private List<Object> params;
+        private List<Object> tags;
 
         Builder(@NonNull String key) {
-            if (EventsParams.EMPTY_KEY.equals(key))
-                throw new EventsException("Event key \"" + key + "\" is reserved and cannot be used");
+            if (EventsParams.EMPTY_KEY.equals(key)) {
+                throw new EventsException("Event key \"" + key
+                        + "\" is reserved and cannot be used");
+            }
 
             this.key = key;
         }

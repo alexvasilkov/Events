@@ -6,7 +6,6 @@ import com.alexvasilkov.events.Event;
 import com.alexvasilkov.events.EventFailure;
 import com.alexvasilkov.events.EventResult;
 import com.alexvasilkov.events.EventStatus;
-import com.alexvasilkov.events.EventsException;
 import com.alexvasilkov.events.cache.CacheProvider;
 
 import java.lang.reflect.Method;
@@ -18,7 +17,7 @@ class EventMethod {
         SUBSCRIBE, STATUS, RESULT, FAILURE
     }
 
-    final Method method;
+    final Method javaMethod;
     final Type type;
     final String eventKey;
 
@@ -32,9 +31,9 @@ class EventMethod {
 
     boolean isInUse;
 
-    EventMethod(Method method, Type type, String eventKey,
-                boolean isBackground, boolean isSingleThread, CacheProvider cache) {
-        this.method = method;
+    EventMethod(Method javaMethod, Type type, String eventKey,
+            boolean isBackground, boolean isSingleThread, CacheProvider cache) {
+        this.javaMethod = javaMethod;
         this.type = type;
         this.eventKey = eventKey;
 
@@ -42,17 +41,17 @@ class EventMethod {
         this.isSingleThread = isSingleThread;
         this.cache = cache;
 
-        method.setAccessible(true);
+        javaMethod.setAccessible(true);
 
-        this.isStatic = Modifier.isStatic(method.getModifiers());
-        this.hasReturnType = !method.getReturnType().equals(Void.TYPE);
-        this.params = method.getParameterTypes();
+        this.isStatic = Modifier.isStatic(javaMethod.getModifiers());
+        this.hasReturnType = !javaMethod.getReturnType().equals(Void.TYPE);
+        this.params = javaMethod.getParameterTypes();
 
         check();
     }
 
-    EventMethod(Method method, Type type, String eventKey) {
-        this(method, type, eventKey, false, false, null);
+    EventMethod(Method javaMethod, Type type, String eventKey) {
+        this(javaMethod, type, eventKey, false, false, null);
     }
 
 
@@ -62,32 +61,28 @@ class EventMethod {
 
         // Only subscribers can have non-void return type
         if (hasReturnType && type != Type.SUBSCRIBE) {
-            throw new EventsException(
-                    Utils.toLogStr(eventKey, this, "Method can only have void return type"));
+            throw Utils.toException(eventKey, this, "Method can only have void return type");
         }
 
         // Only subscribers can have cache
         if (cache != null && type != Type.SUBSCRIBE) {
-            throw new EventsException(
-                    Utils.toLogStr(eventKey, this, "Method cannot have cache"));
+            throw Utils.toException(eventKey, this, "Method cannot have cache");
         }
 
         // Only subscribers can be executed in background
         if (isBackground && type != Type.SUBSCRIBE) {
-            throw new EventsException(
-                    Utils.toLogStr(eventKey, this, "Method cannot be executed in background"));
+            throw Utils.toException(eventKey, this, "Method cannot be executed in background");
         }
 
         // Only static methods can be executed in background, to not leak object references
         if (isBackground && !isStatic) {
-            throw new EventsException(
-                    Utils.toLogStr(eventKey, this, "Background method should be static. " +
-                            "To subscribe static methods pass Class object to Events.register()"));
+            throw Utils.toException(eventKey, this, "Background method should be static. "
+                    + "To subscribe static methods pass Class object to Events.register()");
         }
     }
 
     Object[] args(Event event, @Nullable EventStatus status, @Nullable EventResult result,
-                  @Nullable EventFailure failure) {
+            @Nullable EventFailure failure) {
 
         Object[] args = new Object[params.length];
         fillAndCheckArgs(args, event, status, result, failure);
@@ -95,8 +90,8 @@ class EventMethod {
     }
 
     private void fillAndCheckArgs(@Nullable Object[] args, @Nullable Event event,
-                                  @Nullable EventStatus status, @Nullable EventResult result,
-                                  @Nullable EventFailure failure) {
+            @Nullable EventStatus status, @Nullable EventResult result,
+            @Nullable EventFailure failure) {
         switch (type) {
             case SUBSCRIBE:
                 subscribeArgs(args, event);
@@ -111,8 +106,7 @@ class EventMethod {
                 failureArgs(args, event, failure);
                 break;
             default:
-                throw new EventsException(
-                        Utils.toLogStr(eventKey, this, "Unknown method type: " + type));
+                throw Utils.toException(eventKey, this, "Unknown method type: " + type);
         }
     }
 
@@ -123,7 +117,9 @@ class EventMethod {
         if (params.length > 0) {
             if (params[0] == Event.class) {
                 // [Event, ...?]
-                if (args != null) args[0] = event;
+                if (args != null) {
+                    args[0] = event;
+                }
 
                 if (params.length > 1) {
                     // Detected [Event, Params...]
@@ -149,60 +145,70 @@ class EventMethod {
     }
 
     private void statusArgs(@Nullable Object[] args, @Nullable Event event,
-                            @Nullable EventStatus status) {
+            @Nullable EventStatus status) {
 
-        final String MSG = "Allowed parameters: [Event], [Event, EventStatus] or [EventStatus]";
+        final String msg = "Allowed parameters: [Event], [Event, EventStatus] or [EventStatus]";
 
         if (params.length == 0) {
             // Wrong []
-            throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+            throw Utils.toException(eventKey, this, msg);
         } else if (params[0] == Event.class) {
             // [Event, ...?]
-            if (args != null) args[0] = event;
+            if (args != null) {
+                args[0] = event;
+            }
 
             if (params.length == 2 && params[1] == EventStatus.class) {
                 // Detected [Event, EventStatus]
-                if (args != null) args[1] = status;
+                if (args != null) {
+                    args[1] = status;
+                }
             } else if (params.length > 1) {
                 // Wrong [Event, Unknown...]
-                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                throw Utils.toException(eventKey, this, msg);
             }
             // Otherwise:
             // Detected [Event]
         } else if (params[0] == EventStatus.class) {
             // [EventStatus, ...?]
-            if (args != null) args[0] = status;
+            if (args != null) {
+                args[0] = status;
+            }
 
             if (params.length > 1) {
                 // Wrong [EventStatus, Unknown...]
-                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                throw Utils.toException(eventKey, this, msg);
             }
             // Otherwise:
             // Detected [EventStatus]
         } else {
             // Wrong [Unknown...]
-            throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+            throw Utils.toException(eventKey, this, msg);
         }
     }
 
     private void resultArgs(@Nullable Object[] args, @Nullable Event event,
-                            @Nullable EventResult result) {
+            @Nullable EventResult result) {
 
-        final String MSG = "Allowed parameters: [], [Event], [Event, Results...], " +
-                "[Event, EventResult], [Results...] or [EventResult]";
+        final String msg = "Allowed parameters: [], [Event], [Event, Results...], "
+                + "[Event, EventResult], [Results...] or [EventResult]";
 
         if (params.length > 0) {
             if (params[0] == Event.class) {
                 // [Event, ...?]
-                if (args != null) args[0] = event;
+                if (args != null) {
+                    args[0] = event;
+                }
 
                 if (params.length > 1 && params[1] == EventResult.class) {
                     // [Event, EventResult, ...?]
-                    if (args != null) args[1] = result;
+                    if (args != null) {
+                        args[1] = result;
+                    }
 
                     if (params.length > 2) {
                         // Wrong [Event, EventResult, Results...]
-                        throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                        throw Utils.toException(eventKey, this, msg);
                     }
                     // Otherwise:
                     // Detected [Event, EventResult]
@@ -218,11 +224,13 @@ class EventMethod {
                 // Detected [Event]
             } else if (params[0] == EventResult.class) {
                 // [EventResult, ...?]
-                if (args != null) args[0] = result;
+                if (args != null) {
+                    args[0] = result;
+                }
 
                 if (params.length > 1) {
                     // Wrong [EventResult, Results...]
-                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                    throw Utils.toException(eventKey, this, msg);
                 }
                 // Otherwise:
                 // Detected [EventResult]
@@ -240,56 +248,66 @@ class EventMethod {
     }
 
     private void failureArgs(@Nullable Object[] args, @Nullable Event event,
-                             @Nullable EventFailure failure) {
+            @Nullable EventFailure failure) {
 
-        final String MSG = "Allowed parameters: [], [Event], [Event, Throwable], " +
-                "[Event, EventFailure], [Throwable] or [EventFailure]";
+        final String msg = "Allowed parameters: [], [Event], [Event, Throwable], "
+                + "[Event, EventFailure], [Throwable] or [EventFailure]";
 
         if (params.length > 0) {
             if (params[0] == Event.class) {
                 // [Event, ...?]
-                if (args != null) args[0] = event;
+                if (args != null) {
+                    args[0] = event;
+                }
 
                 if (params.length == 2) {
                     if (params[1] == Throwable.class) {
                         // Detected [Event, Throwable]
-                        if (args != null && failure != null) args[1] = failure.getError();
+                        if (args != null && failure != null) {
+                            args[1] = failure.getError();
+                        }
                     } else if (params[1] == EventFailure.class) {
                         // Detected [Event, EventFailure]
-                        if (args != null) args[1] = failure;
+                        if (args != null) {
+                            args[1] = failure;
+                        }
                     } else {
                         // Wrong [Event, Unknown]
-                        throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                        throw Utils.toException(eventKey, this, msg);
                     }
                 } else if (params.length > 2) {
                     // Wrong [Event, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                    throw Utils.toException(eventKey, this, msg);
                 }
                 // Otherwise:
                 // Detected [Event]
             } else if (params[0] == Throwable.class) {
                 // [Throwable, ...?]
-                if (args != null && failure != null) args[0] = failure.getError();
+                if (args != null && failure != null) {
+                    args[0] = failure.getError();
+                }
 
                 if (params.length > 1) {
                     // Wrong [Throwable, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                    throw Utils.toException(eventKey, this, msg);
                 }
                 // Otherwise:
                 // Detected [Throwable]
             } else if (params[0] == EventFailure.class) {
                 // [EventFailure, ...?]
-                if (args != null) args[0] = failure;
+                if (args != null) {
+                    args[0] = failure;
+                }
 
                 if (params.length > 1) {
                     // Wrong [EventFailure, Unknown...]
-                    throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                    throw Utils.toException(eventKey, this, msg);
                 }
                 // Otherwise:
                 // Detected [EventFailure]
             } else {
                 // Wrong [Unknown...]
-                throw new EventsException(Utils.toLogStr(eventKey, this, MSG));
+                throw Utils.toException(eventKey, this, msg);
             }
         }
         // Otherwise:

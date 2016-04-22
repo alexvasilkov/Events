@@ -10,11 +10,16 @@ public class ListUtils {
         if (values == null) {
             // For 'method(Object...)':
             // when calling 'method(null)' to add null value Java will treat it as
-            // 'method((Object[]) null)' while user will actually expect 'method(new Object[]{null})'
-            if (list == null) list = new ArrayList<>();
+            // 'method((Object[]) null)' while user will actually expect
+            // 'method(new Object[]{null})'
+            if (list == null) {
+                list = new ArrayList<>();
+            }
             list.add(null);
         } else if (values.length > 0) {
-            if (list == null) list = new ArrayList<>();
+            if (list == null) {
+                list = new ArrayList<>();
+            }
             Collections.addAll(list, values);
         }
 

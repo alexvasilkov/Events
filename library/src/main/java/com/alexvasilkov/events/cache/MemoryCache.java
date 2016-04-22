@@ -18,8 +18,8 @@ public class MemoryCache implements CacheProvider {
 
     public static final long NO_TIME_LIMIT = 0L;
 
-    private static final Map<String, CacheEntry> CACHE = new HashMap<>();
-    private static final Handler HANDLER = new CacheHandler();
+    private static final Map<String, CacheEntry> cache = new HashMap<>();
+    private static final Handler handler = new CacheHandler();
 
     private final long maxLifetime;
     private final boolean isClearExpired;
@@ -35,8 +35,8 @@ public class MemoryCache implements CacheProvider {
 
     @Override
     public EventResult loadFromCache(@NonNull Event event) {
-        synchronized (CACHE) {
-            CacheEntry entry = CACHE.get(toCacheKey(event));
+        synchronized (cache) {
+            CacheEntry entry = cache.get(toCacheKey(event));
             boolean expired = entry == null || entry.expires < SystemClock.uptimeMillis();
             return entry == null || expired ? null : entry.result;
         }
@@ -44,11 +44,13 @@ public class MemoryCache implements CacheProvider {
 
     @Override
     public void saveToCache(@NonNull Event event, EventResult result) {
-        synchronized (CACHE) {
+        synchronized (cache) {
             long expires = maxLifetime == NO_TIME_LIMIT
                     ? Long.MAX_VALUE : SystemClock.uptimeMillis() + maxLifetime;
-            CACHE.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
-            if (isClearExpired) HANDLER.sendEmptyMessageAtTime(0, expires + 10);
+            cache.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
+            if (isClearExpired) {
+                handler.sendEmptyMessageAtTime(0, expires + 10);
+            }
         }
     }
 
@@ -77,19 +79,21 @@ public class MemoryCache implements CacheProvider {
     }
 
     private static class CacheHandler extends Handler {
-
-        public CacheHandler() {
+        CacheHandler() {
             super(Looper.getMainLooper());
         }
 
         @Override
         public void handleMessage(@NonNull Message msg) {
-            synchronized (CACHE) {
+            synchronized (cache) {
                 long now = SystemClock.uptimeMillis();
-                Iterator<Map.Entry<String, CacheEntry>> iterator = CACHE.entrySet().iterator();
+                Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
+
                 while (iterator.hasNext()) {
                     CacheEntry entry = iterator.next().getValue();
-                    if (entry.isClearExpired && entry.expires < now) iterator.remove();
+                    if (entry.isClearExpired && entry.expires < now) {
+                        iterator.remove();
+                    }
                 }
             }
         }

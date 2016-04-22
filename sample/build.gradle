@@ -1,7 +1,4 @@
 buildscript {
-    repositories {
-        jcenter()
-    }
     dependencies {
         classpath 'com.alexvasilkov:android-sign-release:0.8.1'
     }
@@ -12,7 +9,7 @@ apply plugin: 'com.alexvasilkov.sign'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion '23.0.3'
 
     defaultConfig {
         minSdkVersion 14

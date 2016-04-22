@@ -4,6 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -20,99 +21,110 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Dispatches targets registration and events execution. Works on main thread to avoid
+ * synchronization issues and uses {@link Handler} to schedule execution on main thread.
+ */
 public class Dispatcher {
 
     private static final long MAX_TIME_IN_MAIN_THREAD = 10L;
 
-    private static final List<EventTarget> TARGETS = new LinkedList<>();
-    private static final LinkedList<Task> EXECUTION_QUEUE = new LinkedList<>();
+    private static final List<EventTarget> targets = new LinkedList<>();
+    private static final LinkedList<Task> executionQueue = new LinkedList<>();
 
-    private static final Set<Event> ACTIVE_EVENTS = new HashSet<>();
-    private static final Set<Task> ACTIVE_TASKS = new HashSet<>();
+    private static final Set<Event> activeEvents = new HashSet<>();
+    private static final Set<Task> activeTasks = new HashSet<>();
 
-    private static final MainThreadHandler MAIN_THREAD = new MainThreadHandler();
-    private static final ExecutorService BACKGROUND_EXECUTOR = Executors.newCachedThreadPool();
+    private static final MainThreadHandler mainThreadHandler = new MainThreadHandler();
+    private static final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
 
     private static boolean isExecuting;
 
+    private Dispatcher() {
+        // No instances
+    }
+
     // Registers events target
-    public static void register(Object target) {
-        MAIN_THREAD.register(target);
+    public static void register(Object targetObj) {
+        mainThreadHandler.register(targetObj);
     }
 
     // Unregisters events target
-    public static void unregister(Object target) {
-        MAIN_THREAD.unregister(target);
+    public static void unregister(Object targetObj) {
+        mainThreadHandler.unregister(targetObj);
     }
 
     // Schedules event execution
     public static void postEvent(Event event) {
-        MAIN_THREAD.postEvent(event);
+        mainThreadHandler.postEvent(event);
     }
 
     // Schedules result callback
     public static void postEventResult(Event event, EventResult result) {
-        MAIN_THREAD.postEventResult(event, result);
+        mainThreadHandler.postEventResult(event, result);
     }
 
     // Schedules failure callback
     public static void postEventFailure(Event event, EventFailure failure) {
-        MAIN_THREAD.postEventFailure(event, failure);
+        mainThreadHandler.postEventFailure(event, failure);
     }
 
     // Schedules finished status callback
     public static void postTaskFinished(Task task) {
-        MAIN_THREAD.postTaskFinished(task);
+        mainThreadHandler.postTaskFinished(task);
     }
 
     // Schedules tasks execution on main thread
-    private static void execute(boolean delay) {
-        MAIN_THREAD.execute(delay);
+    private static void executeTasks(boolean delay) {
+        mainThreadHandler.executeTasks(delay);
     }
 
 
     // Schedules status updates of all active events for given target.
-    // Should be called on main thread.
-    private static void scheduleStatusUpdates(EventTarget eventTarget, EventStatus status) {
-        for (Event event : ACTIVE_EVENTS) {
-            for (EventMethod m : eventTarget.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.STATUS) {
-                    Utils.log(event.getKey(), m, "Scheduling status update for new target");
-                    EXECUTION_QUEUE.addFirst(Task.create(eventTarget, m, event, status));
+    @MainThread
+    private static void scheduleActiveStatusesUpdates(EventTarget target, EventStatus status) {
+        for (Event event : activeEvents) {
+            for (EventMethod method : target.methods) {
+                if (event.getKey().equals(method.eventKey)
+                        && method.type == EventMethod.Type.STATUS) {
+                    Utils.log(event.getKey(), method, "Scheduling status update for new target");
+                    executionQueue.addFirst(Task.create(target, method, event, status));
                 }
             }
         }
     }
 
     // Schedules status update of given event for all registered targets.
-    // Should be called on main thread.
+    @MainThread
     private static void scheduleStatusUpdates(Event event, EventStatus status) {
-        for (EventTarget t : TARGETS) {
-            for (EventMethod m : t.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.STATUS) {
-                    Utils.log(event.getKey(), m, "Scheduling status update");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, status));
+        for (EventTarget target : targets) {
+            for (EventMethod method : target.methods) {
+                if (event.getKey().equals(method.eventKey)
+                        && method.type == EventMethod.Type.STATUS) {
+                    Utils.log(event.getKey(), method, "Scheduling status update");
+                    executionQueue.add(Task.create(target, method, event, status));
                 }
             }
         }
     }
 
     // Schedules handling of given event for all registered targets.
-    // Should be called on main thread.
+    @MainThread
     private static void scheduleSubscribersInvocation(Event event) {
-        for (EventTarget t : TARGETS) {
-            for (EventMethod m : t.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.SUBSCRIBE) {
+        for (EventTarget target : targets) {
+            for (EventMethod method : target.methods) {
+                if (event.getKey().equals(method.eventKey)
+                        && method.type == EventMethod.Type.SUBSCRIBE) {
 
                     // If we'll find equivalent task (same target, same method, similar event)
                     // which is not yet running, then we can skip execution of current event
                     boolean skipEvent = false;
 
-                    for (Task task : ACTIVE_TASKS) {
-                        if (task.eventTarget == t && task.eventMethod == m && !task.isRunning
-                                && Event.isDeeplyEqual(task.event, event)) {
+                    for (Task task : activeTasks) {
+                        if (task.target == target && task.method == method
+                                && !task.isRunning && Event.isDeeplyEqual(task.event, event)) {
 
-                            Utils.log(event.getKey(), m, "Similar event found, skipping execution");
+                            Utils.log(event.getKey(), method, "Similar event found, skipping exec");
 
                             skipEvent = true;
                             break;
@@ -123,93 +135,95 @@ public class Dispatcher {
                         continue;
                     }
 
-                    Utils.log(event.getKey(), m, "Scheduling event execution");
+                    Utils.log(event.getKey(), method, "Scheduling event execution");
 
                     ((EventBase) event).handlersCount++;
 
-                    Task task = Task.create(t, m, event);
-                    EXECUTION_QUEUE.add(task);
-                    ACTIVE_TASKS.add(task);
+                    Task task = Task.create(target, method, event);
+                    executionQueue.add(task);
+                    activeTasks.add(task);
                 }
             }
         }
     }
 
     // Schedules sending result to all registered targets.
-    // Should be called on main thread.
+    @MainThread
     private static void scheduleResultCallbacks(Event event, EventResult result) {
-        for (EventTarget t : TARGETS) {
-            for (EventMethod m : t.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.RESULT) {
-                    Utils.log(event.getKey(), m, "Scheduling result callback");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, result));
+        for (EventTarget target : targets) {
+            for (EventMethod method : target.methods) {
+                if (event.getKey().equals(method.eventKey)
+                        && method.type == EventMethod.Type.RESULT) {
+                    Utils.log(event.getKey(), method, "Scheduling result callback");
+                    executionQueue.add(Task.create(target, method, event, result));
                 }
             }
         }
     }
 
     // Schedules sending failure callback to all registered targets.
-    // Should be called on main thread.
+    @MainThread
     private static void scheduleFailureCallbacks(Event event, EventFailure failure) {
         // Sending failure callback for explicit handlers of given event
-        for (EventTarget t : TARGETS) {
-            for (EventMethod m : t.methods) {
-                if (event.getKey().equals(m.eventKey) && m.type == EventMethod.Type.FAILURE) {
-                    Utils.log(event.getKey(), m, "Scheduling failure callback");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, failure));
+        for (EventTarget target : targets) {
+            for (EventMethod method : target.methods) {
+                if (event.getKey().equals(method.eventKey)
+                        && method.type == EventMethod.Type.FAILURE) {
+                    Utils.log(event.getKey(), method, "Scheduling failure callback");
+                    executionQueue.add(Task.create(target, method, event, failure));
                 }
             }
         }
 
         // Sending failure callback to general handlers (with no particular event key)
-        for (EventTarget t : TARGETS) {
-            for (EventMethod m : t.methods) {
-                if (EventsParams.EMPTY_KEY.equals(m.eventKey) &&
-                        m.type == EventMethod.Type.FAILURE) {
-                    Utils.log(event.getKey(), m, "Scheduling general failure callback");
-                    EXECUTION_QUEUE.add(Task.create(t, m, event, failure));
+        for (EventTarget target : targets) {
+            for (EventMethod method : target.methods) {
+                if (EventsParams.EMPTY_KEY.equals(method.eventKey)
+                        && method.type == EventMethod.Type.FAILURE) {
+                    Utils.log(event.getKey(), method, "Scheduling general failure callback");
+                    executionQueue.add(Task.create(target, method, event, failure));
                 }
             }
         }
     }
 
 
-    // Handling registration on main thread
-    private static void handleRegistration(Object target) {
-        if (target == null) {
+    // Handles target object registration
+    @MainThread
+    private static void handleRegistration(Object targetObj) {
+        if (targetObj == null) {
             throw new NullPointerException("Target cannot be null");
         }
 
-        for (EventTarget eventTarget : TARGETS) {
-            if (eventTarget.target == target) {
-                Log.e(Utils.TAG, "Target " + Utils.classToString(target) + " already registered");
+        for (EventTarget target : targets) {
+            if (target.targetObj == targetObj) {
+                Utils.logE(targetObj, "Already registered");
                 return;
             }
         }
 
-        EventTarget eventTarget = new EventTarget(target);
-        TARGETS.add(eventTarget);
+        EventTarget target = new EventTarget(targetObj);
+        targets.add(target);
 
-        if (EventsParams.isDebug()) {
-            Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Registered");
-        }
+        Utils.log(targetObj, "Registered");
 
-        scheduleStatusUpdates(eventTarget, EventStatus.STARTED);
-        execute(false);
+        scheduleActiveStatusesUpdates(target, EventStatus.STARTED);
+        executeTasks(false);
     }
 
-    // Handling un-registration on main thread
-    private static void handleUnRegistration(Object target) {
-        if (target == null) {
+    // Handles target un-registration
+    @MainThread
+    private static void handleUnRegistration(Object targetObj) {
+        if (targetObj == null) {
             throw new NullPointerException("Target cannot be null");
         }
 
         boolean isUnregistered = false;
 
-        for (Iterator<EventTarget> iterator = TARGETS.iterator(); iterator.hasNext(); ) {
-            EventTarget eventTarget = iterator.next();
-            if (eventTarget.target == target) {
-                eventTarget.isUnregistered = true;
+        for (Iterator<EventTarget> iterator = targets.iterator(); iterator.hasNext(); ) {
+            EventTarget target = iterator.next();
+            if (target.targetObj == targetObj) {
+                target.isUnregistered = true;
                 iterator.remove();
                 isUnregistered = true;
                 break;
@@ -217,19 +231,18 @@ public class Dispatcher {
         }
 
         if (!isUnregistered) {
-            Log.e(Utils.TAG, "Target " + Utils.classToString(target) + " was not registered");
+            Utils.logE(targetObj, "Was not registered");
         }
 
-        if (EventsParams.isDebug()) {
-            Log.d(Utils.TAG, "Target " + Utils.classToString(target) + " | Unregistered");
-        }
+        Utils.log(targetObj, "Unregistered");
     }
 
-    // Handling event posting on main thread
+    // Handles event posting
+    @MainThread
     private static void handleEventPost(Event event) {
         Utils.log(event.getKey(), "Handling posted event");
 
-        int sizeBefore = EXECUTION_QUEUE.size();
+        int sizeBefore = executionQueue.size();
 
         scheduleStatusUpdates(event, EventStatus.STARTED);
         scheduleSubscribersInvocation(event);
@@ -237,49 +250,52 @@ public class Dispatcher {
         if (((EventBase) event).handlersCount == 0) {
             Utils.log(event.getKey(), "No subscribers found");
             // Removing all scheduled STARTED status callbacks
-            while (EXECUTION_QUEUE.size() > sizeBefore) {
-                EXECUTION_QUEUE.removeLast();
+            while (executionQueue.size() > sizeBefore) {
+                executionQueue.removeLast();
             }
         } else {
-            ACTIVE_EVENTS.add(event);
-            execute(false);
+            activeEvents.add(event);
+            executeTasks(false);
         }
     }
 
-    // Handling event result on main thread
+    // Handles event result
+    @MainThread
     private static void handleEventResult(Event event, EventResult result) {
-        if (!ACTIVE_EVENTS.contains(event)) {
+        if (!activeEvents.contains(event)) {
             Utils.logE(event.getKey(), "Cannot send result of finished event");
             return;
         }
 
         scheduleResultCallbacks(event, result);
-        execute(false);
+        executeTasks(false);
     }
 
-    // Handling event failure on main thread
+    // Handles event failure
+    @MainThread
     private static void handleEventFailure(Event event, EventFailure failure) {
-        if (!ACTIVE_EVENTS.contains(event)) {
+        if (!activeEvents.contains(event)) {
             Utils.logE(event.getKey(), "Cannot send failure callback of finished event");
             return;
         }
 
         scheduleFailureCallbacks(event, failure);
-        execute(false);
+        executeTasks(false);
     }
 
-    // Handling finished event on main thread
+    // Handles finished event
+    @MainThread
     private static void handleTaskFinished(Task task) {
-        ACTIVE_TASKS.remove(task);
+        activeTasks.remove(task);
 
-        if (task.eventMethod.isSingleThread) {
+        if (task.method.isSingleThread) {
             Utils.log(task, "Single-thread method is no longer in use");
-            task.eventMethod.isInUse = false;
+            task.method.isInUse = false;
         }
 
         Event event = task.event;
 
-        if (!ACTIVE_EVENTS.contains(event)) {
+        if (!activeEvents.contains(event)) {
             Utils.logE(event.getKey(), "Cannot finish already finished event");
             return;
         }
@@ -288,44 +304,43 @@ public class Dispatcher {
 
         if (((EventBase) event).handlersCount == 0) {
             // No more running handlers
-            ACTIVE_EVENTS.remove(event);
+            activeEvents.remove(event);
             scheduleStatusUpdates(event, EventStatus.FINISHED);
-            execute(false);
+            executeTasks(false);
         }
     }
 
-    // Handling scheduled execution tasks on main thread
+    // Handles scheduled execution tasks
+    @MainThread
     private static void handleTasksExecution() {
-        if (isExecuting || EXECUTION_QUEUE.isEmpty()) {
+        if (isExecuting || executionQueue.isEmpty()) {
             return; // Nothing to dispatch
         }
 
         isExecuting = true;
 
-        if (EventsParams.isDebug()) {
-            Log.d(Utils.TAG, "Dispatching: started");
-        }
+        Utils.log("Dispatching: started");
 
         long started = SystemClock.uptimeMillis();
 
         Task task;
         while ((task = pollExecutionTask()) != null) {
-            if (task.eventTarget.isUnregistered) {
+            if (task.target.isUnregistered) {
                 continue; // Target is unregistered
             }
 
-            if (task.eventMethod.isBackground) {
-                if (task.eventMethod.isSingleThread) {
-                    if (task.eventMethod.isInUse) {
+            if (task.method.isBackground) {
+                if (task.method.isSingleThread) {
+                    if (task.method.isInUse) {
                         continue;
                     } else {
                         Utils.log(task, "Single-thread method is in use now");
-                        task.eventMethod.isInUse = true;
+                        task.method.isInUse = true;
                     }
                 }
 
                 Utils.log(task, "Executing in background");
-                BACKGROUND_EXECUTOR.execute(task);
+                backgroundExecutor.execute(task);
             } else {
                 Utils.log(task, "Executing");
                 task.run();
@@ -339,24 +354,23 @@ public class Dispatcher {
                     Log.d(Utils.TAG, "Dispatching: time in main thread "
                             + time + " ms > " + MAX_TIME_IN_MAIN_THREAD + " ms");
                 }
-                execute(true);
+                executeTasks(true);
                 break;
             }
         }
 
-        if (EventsParams.isDebug()) {
-            Log.d(Utils.TAG, "Dispatching: finished");
-        }
+        Utils.log("Dispatching: finished");
 
         isExecuting = false;
     }
 
+    @MainThread
     private static Task pollExecutionTask() {
-        for (int i = 0, size = EXECUTION_QUEUE.size(); i < size; i++) {
-            Task task = EXECUTION_QUEUE.get(i);
-            if (!task.eventMethod.isBackground || !task.eventMethod.isSingleThread
-                    || !task.eventMethod.isInUse) {
-                return EXECUTION_QUEUE.remove(i);
+        for (int i = 0, size = executionQueue.size(); i < size; i++) {
+            Task task = executionQueue.get(i);
+            if (!task.method.isBackground || !task.method.isSingleThread
+                    || !task.method.isInUse) {
+                return executionQueue.remove(i);
             }
         }
         return null;
@@ -381,15 +395,15 @@ public class Dispatcher {
             super(Looper.getMainLooper());
         }
 
-        void register(Object target) {
-            sendDelayed(MSG_REGISTER, target, false);
+        void register(Object targetObj) {
+            sendDelayed(MSG_REGISTER, targetObj, false);
         }
 
-        void unregister(Object target) {
-            sendDelayed(MSG_UNREGISTER, target, false);
+        void unregister(Object targetObj) {
+            sendDelayed(MSG_UNREGISTER, targetObj, false);
         }
 
-        void execute(boolean delay) {
+        void executeTasks(boolean delay) {
             sendDelayed(MSG_EXECUTE, null, delay);
         }
 
@@ -454,6 +468,7 @@ public class Dispatcher {
                     handleTaskFinished((Task) obj);
                     break;
                 }
+                default:
             }
         }
     }

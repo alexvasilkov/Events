@@ -36,7 +36,6 @@ public class SampleActivity extends Activity {
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        Events.init(this);
         Events.setDebug(true);
 
         Events.register(SampleActivity.class);
