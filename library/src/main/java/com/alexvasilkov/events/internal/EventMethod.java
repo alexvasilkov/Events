@@ -9,7 +9,6 @@ import com.alexvasilkov.events.EventStatus;
 import com.alexvasilkov.events.cache.CacheProvider;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 class EventMethod {
 
@@ -31,7 +30,7 @@ class EventMethod {
 
     boolean isInUse;
 
-    EventMethod(Method javaMethod, Type type, String eventKey,
+    EventMethod(Method javaMethod, Type type, String eventKey, boolean isStatic,
             boolean isBackground, boolean isSingleThread, CacheProvider cache) {
         this.javaMethod = javaMethod;
         this.type = type;
@@ -43,15 +42,15 @@ class EventMethod {
 
         javaMethod.setAccessible(true);
 
-        this.isStatic = Modifier.isStatic(javaMethod.getModifiers());
+        this.isStatic = isStatic;
         this.hasReturnType = !javaMethod.getReturnType().equals(Void.TYPE);
         this.params = javaMethod.getParameterTypes();
 
         check();
     }
 
-    EventMethod(Method javaMethod, Type type, String eventKey) {
-        this(javaMethod, type, eventKey, false, false, null);
+    EventMethod(Method javaMethod, Type type, String eventKey, boolean isStatic) {
+        this(javaMethod, type, eventKey, isStatic, false, false, null);
     }
 
 

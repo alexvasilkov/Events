@@ -92,7 +92,8 @@ class EventMethodsHelper {
 
                 CacheProvider cache = getCacheProvider(m);
 
-                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, isBack, isSingle, cache);
+                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, statics,
+                        isBack, isSingle, cache);
 
             } else if (m.isAnnotationPresent(Status.class)) {
 
@@ -100,7 +101,7 @@ class EventMethodsHelper {
                         Result.class, Failure.class);
 
                 String key = m.getAnnotation(Status.class).value();
-                info = new EventMethod(m, EventMethod.Type.STATUS, key);
+                info = new EventMethod(m, EventMethod.Type.STATUS, key, statics);
 
             } else if (m.isAnnotationPresent(Result.class)) {
 
@@ -108,7 +109,7 @@ class EventMethodsHelper {
                         Status.class, Failure.class);
 
                 String key = m.getAnnotation(Result.class).value();
-                info = new EventMethod(m, EventMethod.Type.RESULT, key);
+                info = new EventMethod(m, EventMethod.Type.RESULT, key, statics);
 
             } else if (m.isAnnotationPresent(Failure.class)) {
 
@@ -116,7 +117,7 @@ class EventMethodsHelper {
                         Status.class, Result.class);
 
                 String key = m.getAnnotation(Failure.class).value();
-                info = new EventMethod(m, EventMethod.Type.FAILURE, key);
+                info = new EventMethod(m, EventMethod.Type.FAILURE, key, statics);
 
             }
 
