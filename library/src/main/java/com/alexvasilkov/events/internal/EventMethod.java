@@ -146,28 +146,11 @@ class EventMethod {
     private void statusArgs(@Nullable Object[] args, @Nullable Event event,
             @Nullable EventStatus status) {
 
-        final String msg = "Allowed parameters: [Event], [Event, EventStatus] or [EventStatus]";
+        final String msg = "Allowed parameters: [EventStatus] or [Event, EventStatus]";
 
         if (params.length == 0) {
             // Wrong []
             throw Utils.toException(eventKey, this, msg);
-        } else if (params[0] == Event.class) {
-            // [Event, ...?]
-            if (args != null) {
-                args[0] = event;
-            }
-
-            if (params.length == 2 && params[1] == EventStatus.class) {
-                // Detected [Event, EventStatus]
-                if (args != null) {
-                    args[1] = status;
-                }
-            } else if (params.length > 1) {
-                // Wrong [Event, Unknown...]
-                throw Utils.toException(eventKey, this, msg);
-            }
-            // Otherwise:
-            // Detected [Event]
         } else if (params[0] == EventStatus.class) {
             // [EventStatus, ...?]
             if (args != null) {

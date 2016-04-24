@@ -122,9 +122,8 @@ public class Events {
      * </ul></p>
      * <p><b>Allowed method parameters</b>
      * <ul>
-     * <li><code>method({@link Event})</code></li>
-     * <li><code>method({@link Event}, {@link EventStatus})</code></li>
      * <li><code>method({@link EventStatus})</code></li>
+     * <li><code>method({@link Event}, {@link EventStatus})</code></li>
      * </ul></p>
      */
     @Target({ ElementType.METHOD })
