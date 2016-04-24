@@ -63,11 +63,6 @@ class EventMethod {
             throw Utils.toException(eventKey, this, "Method can only have void return type");
         }
 
-        // Only subscribers can be executed in background
-        if (isBackground && type != Type.SUBSCRIBE) {
-            throw Utils.toException(eventKey, this, "Method cannot be executed in background");
-        }
-
         // Only static methods can be executed in background, to not leak object references
         if (isBackground && !isStatic) {
             throw Utils.toException(eventKey, this, "Background method should be static. "
