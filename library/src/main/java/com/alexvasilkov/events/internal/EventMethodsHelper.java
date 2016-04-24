@@ -119,6 +119,12 @@ class EventMethodsHelper {
                 String key = m.getAnnotation(Failure.class).value();
                 info = new EventMethod(m, EventMethod.Type.FAILURE, key, statics);
 
+            } else if (m.isAnnotationPresent(Background.class)
+                    || m.isAnnotationPresent(Cache.class)) {
+
+                throw new EventsException("Method " + Utils.methodToString(m)
+                        + " should be marked with " + Subscribe.class.getSimpleName());
+
             }
 
             if (info != null) {
