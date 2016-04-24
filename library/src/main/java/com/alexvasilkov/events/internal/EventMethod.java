@@ -63,11 +63,6 @@ class EventMethod {
             throw Utils.toException(eventKey, this, "Method can only have void return type");
         }
 
-        // Only subscribers can have cache
-        if (cache != null && type != Type.SUBSCRIBE) {
-            throw Utils.toException(eventKey, this, "Method cannot have cache");
-        }
-
         // Only subscribers can be executed in background
         if (isBackground && type != Type.SUBSCRIBE) {
             throw Utils.toException(eventKey, this, "Method cannot be executed in background");
@@ -257,22 +252,17 @@ class EventMethod {
                     args[0] = event;
                 }
 
-                if (params.length == 2) {
-                    if (params[1] == Throwable.class) {
-                        // Detected [Event, Throwable]
-                        if (args != null && failure != null) {
-                            args[1] = failure.getError();
-                        }
-                    } else if (params[1] == EventFailure.class) {
-                        // Detected [Event, EventFailure]
-                        if (args != null) {
-                            args[1] = failure;
-                        }
-                    } else {
-                        // Wrong [Event, Unknown]
-                        throw Utils.toException(eventKey, this, msg);
+                if (params.length == 2 && params[1] == Throwable.class) {
+                    // Detected [Event, Throwable]
+                    if (args != null && failure != null) {
+                        args[1] = failure.getError();
                     }
-                } else if (params.length > 2) {
+                } else if (params.length == 2 && params[1] == EventFailure.class) {
+                    // Detected [Event, EventFailure]
+                    if (args != null) {
+                        args[1] = failure;
+                    }
+                } else if (params.length > 1) {
                     // Wrong [Event, Unknown...]
                     throw Utils.toException(eventKey, this, msg);
                 }
