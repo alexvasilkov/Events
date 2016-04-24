@@ -151,6 +151,21 @@ class EventMethod {
         if (params.length == 0) {
             // Wrong []
             throw Utils.toException(eventKey, this, msg);
+        } else if (params[0] == Event.class) {
+            // [Event, ...?]
+            if (args != null) {
+                args[0] = event;
+            }
+
+            if (params.length == 2 && params[1] == EventStatus.class) {
+                // Detected [Event, EventStatus]
+                if (args != null) {
+                    args[1] = status;
+                }
+            } else {
+                // Wrong [Event] or [Event, Unknown...]
+                throw Utils.toException(eventKey, this, msg);
+            }
         } else if (params[0] == EventStatus.class) {
             // [EventStatus, ...?]
             if (args != null) {
