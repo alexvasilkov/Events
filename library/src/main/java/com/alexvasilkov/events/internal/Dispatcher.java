@@ -317,8 +317,16 @@ public class Dispatcher {
             return; // Nothing to dispatch
         }
 
-        isExecuting = true;
+        try {
+            isExecuting = true;
+            handleTasksExecutionWrapped();
+        } finally {
+            isExecuting = false;
+        }
+    }
 
+    @MainThread
+    private static void handleTasksExecutionWrapped() {
         Utils.log("Dispatching: started");
 
         long started = SystemClock.uptimeMillis();
@@ -360,8 +368,6 @@ public class Dispatcher {
         }
 
         Utils.log("Dispatching: finished");
-
-        isExecuting = false;
     }
 
     @MainThread
