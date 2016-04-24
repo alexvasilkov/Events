@@ -368,8 +368,7 @@ public class Dispatcher {
     private static Task pollExecutionTask() {
         for (int i = 0, size = executionQueue.size(); i < size; i++) {
             Task task = executionQueue.get(i);
-            if (!task.method.isBackground || !task.method.isSingleThread
-                    || !task.method.isInUse) {
+            if (!(task.method.isSingleThread && task.method.isInUse)) {
                 return executionQueue.remove(i);
             }
         }
