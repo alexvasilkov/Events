@@ -10,6 +10,7 @@ import com.alexvasilkov.events.internal.EventsParams;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
@@ -78,7 +79,7 @@ public class Events {
      * using {@link Event#getParam(int)} method.</p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Subscribe {
         String value();
     }
@@ -94,7 +95,7 @@ public class Events {
      * method with {@link Class} object.</p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Background {
         boolean singleThread() default false;
     }
@@ -105,7 +106,7 @@ public class Events {
      * <p>Method must also be marked with {@link Subscribe} annotation.</p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Cache {
         Class<? extends CacheProvider> value();
     }
@@ -127,7 +128,7 @@ public class Events {
      * </ul></p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Status {
         String value();
     }
@@ -151,7 +152,7 @@ public class Events {
      * {@link EventResult#getResult(int)} method.</p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Result {
         String value();
     }
@@ -171,7 +172,7 @@ public class Events {
      * <p><b>Note</b>: You may skip event key to handle all failures of all events.</p>
      */
     @Target({ ElementType.METHOD })
-    @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface Failure {
         String value() default EventsParams.EMPTY_KEY;
     }
