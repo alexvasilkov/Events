@@ -89,16 +89,19 @@ class EventMethodsHelper {
 
                 boolean isBack = m.isAnnotationPresent(Background.class);
                 boolean isSingle = isBack && m.getAnnotation(Background.class).singleThread();
+                boolean hasReturn = !m.getReturnType().equals(Void.TYPE);
 
                 CacheProvider cache = getCacheProvider(m);
 
-                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, statics,
+                info = new EventMethod(m, EventMethod.Type.SUBSCRIBE, key, statics, hasReturn,
                         isBack, isSingle, cache);
 
             } else if (m.isAnnotationPresent(Status.class)) {
 
                 checkNoAnnotations(m, Status.class, Subscribe.class, Background.class, Cache.class,
                         Result.class, Failure.class);
+
+                checkNoReturn(m, Status.class);
 
                 String key = m.getAnnotation(Status.class).value();
                 info = new EventMethod(m, EventMethod.Type.STATUS, key, statics);
@@ -108,6 +111,8 @@ class EventMethodsHelper {
                 checkNoAnnotations(m, Result.class, Subscribe.class, Background.class, Cache.class,
                         Status.class, Failure.class);
 
+                checkNoReturn(m, Result.class);
+
                 String key = m.getAnnotation(Result.class).value();
                 info = new EventMethod(m, EventMethod.Type.RESULT, key, statics);
 
@@ -116,6 +121,8 @@ class EventMethodsHelper {
                 checkNoAnnotations(m, Failure.class, Subscribe.class, Background.class, Cache.class,
                         Status.class, Result.class);
 
+                checkNoReturn(m, Failure.class);
+
                 String key = m.getAnnotation(Failure.class).value();
                 info = new EventMethod(m, EventMethod.Type.FAILURE, key, statics);
 
@@ -123,12 +130,21 @@ class EventMethodsHelper {
                     || m.isAnnotationPresent(Cache.class)) {
 
                 throw new EventsException("Method " + Utils.methodToString(m)
-                        + " should be marked with " + Subscribe.class.getSimpleName());
+                        + " should be marked with @" + Subscribe.class.getSimpleName());
 
             }
 
             if (info != null) {
                 list.add(info);
+            }
+        }
+
+        // Only static methods can be executed in background, to not leak object references
+        for (Method m : methods) {
+            if (!Modifier.isStatic(m.getModifiers()) && m.isAnnotationPresent(Background.class)) {
+                throw new EventsException("Method " + Utils.methodToString(m)
+                        + " marked with @" + Background.class.getSimpleName() + " should be static."
+                        + " To subscribe static methods pass Class object to Events.register()");
             }
         }
 
@@ -146,9 +162,16 @@ class EventMethodsHelper {
         for (Class<? extends Annotation> an : disallowedAn) {
             if (method.isAnnotationPresent(an)) {
                 throw new EventsException("Method " + Utils.methodToString(method)
-                        + " marked with " + foundAn.getSimpleName()
-                        + " cannot be marked with " + an.getSimpleName());
+                        + " marked with @" + foundAn.getSimpleName()
+                        + " cannot be marked with @" + an.getSimpleName());
             }
+        }
+    }
+
+    private static void checkNoReturn(Method method, Class<? extends Annotation> an) {
+        if (!method.getReturnType().equals(Void.TYPE)) {
+            throw new EventsException("Method " + Utils.methodToString(method)
+                    + " marked with @" + an.getSimpleName() + " can only have void return type.");
         }
     }
 

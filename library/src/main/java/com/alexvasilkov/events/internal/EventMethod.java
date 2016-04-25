@@ -30,7 +30,7 @@ class EventMethod {
 
     boolean isInUse;
 
-    EventMethod(Method javaMethod, Type type, String eventKey, boolean isStatic,
+    EventMethod(Method javaMethod, Type type, String eventKey, boolean isStatic, boolean hasReturn,
             boolean isBackground, boolean isSingleThread, CacheProvider cache) {
         this.javaMethod = javaMethod;
         this.type = type;
@@ -43,32 +43,17 @@ class EventMethod {
         javaMethod.setAccessible(true);
 
         this.isStatic = isStatic;
-        this.hasReturnType = !javaMethod.getReturnType().equals(Void.TYPE);
+        this.hasReturnType = hasReturn;
         this.params = javaMethod.getParameterTypes();
 
-        check();
+        // Checks that method has correct signature
+        fillAndCheckArgs(null, null, null, null, null);
     }
 
     EventMethod(Method javaMethod, Type type, String eventKey, boolean isStatic) {
-        this(javaMethod, type, eventKey, isStatic, false, false, null);
+        this(javaMethod, type, eventKey, isStatic, false, false, false, null);
     }
 
-
-    // Checks that method has correct signature
-    private void check() {
-        fillAndCheckArgs(null, null, null, null, null);
-
-        // Only subscribers can have non-void return type
-        if (hasReturnType && type != Type.SUBSCRIBE) {
-            throw Utils.toException(eventKey, this, "Method can only have void return type");
-        }
-
-        // Only static methods can be executed in background, to not leak object references
-        if (isBackground && !isStatic) {
-            throw Utils.toException(eventKey, this, "Background method should be static. "
-                    + "To subscribe static methods pass Class object to Events.register()");
-        }
-    }
 
     Object[] args(Event event, @Nullable EventStatus status, @Nullable EventResult result,
             @Nullable EventFailure failure) {
