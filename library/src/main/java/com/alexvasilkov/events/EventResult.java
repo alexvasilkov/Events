@@ -1,7 +1,5 @@
 package com.alexvasilkov.events;
 
-import com.alexvasilkov.events.internal.ListUtils;
-
 import java.util.List;
 
 public class EventResult {

@@ -45,11 +45,11 @@ public class Events {
     }
 
     public static Event.Builder create(@NonNull String eventKey) {
-        return new Event.Builder(eventKey);
+        return Event.create(eventKey);
     }
 
     public static Event post(@NonNull String eventKey) {
-        return new Event.Builder(eventKey).post();
+        return Event.create(eventKey).post();
     }
 
 

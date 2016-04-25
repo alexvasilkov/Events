@@ -1,12 +1,16 @@
-package com.alexvasilkov.events.internal;
+package com.alexvasilkov.events;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ListUtils {
+class ListUtils {
 
-    public static List<Object> append(List<Object> list, Object... values) {
+    private ListUtils() {
+        // No instances
+    }
+
+    static List<Object> append(List<Object> list, Object... values) {
         if (values == null) {
             // For 'method(Object...)':
             // when calling 'method(null)' to add null value Java will treat it as
@@ -26,21 +30,17 @@ public class ListUtils {
         return list;
     }
 
-    public static Object[] toArray(List<Object> list) {
+    static Object[] toArray(List<Object> list) {
         return list == null ? null : list.toArray();
     }
 
-    public static int count(Object[] values) {
+    static int count(Object[] values) {
         return values == null ? 0 : values.length;
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T get(Object[] values, int index) {
+    static <T> T get(Object[] values, int index) {
         return values == null || values.length <= index || index < 0 ? null : (T) values[index];
-    }
-
-    private ListUtils() {
-        // No instances
     }
 
 }
