@@ -48,10 +48,14 @@ class Task implements Runnable {
 
     @Override
     public void run() {
-        if (!target.isUnregistered) {
+        Object targetObj = target.targetObj;
+        if (targetObj != null) {
             isRunning = true;
-            run(method.isStatic ? null : target.targetObj);
+            run(method.isStatic ? null : targetObj);
         }
+
+        // Task should be finished anyway, even if we didn't execute it
+        Dispatcher.postTaskFinished(this);
     }
 
     private void run(Object targetObj) {
@@ -113,8 +117,8 @@ class Task implements Runnable {
             }
         }
 
-        // Sending back results
         if (method.type == EventMethod.Type.SUBSCRIBE) {
+            // Sending back result or caught exception
             if (methodError != null) {
                 Utils.logE(this, "Error during execution", methodError);
 
@@ -122,9 +126,8 @@ class Task implements Runnable {
             } else if (methodResult != null) {
                 Dispatcher.postEventResult(event, methodResult);
             }
-
-            Dispatcher.postTaskFinished(this);
         } else {
+            // Re-throwing caught exception if it is from callback method
             if (methodError != null) {
                 throw Utils.toException(this, "Error during execution", methodError);
             }

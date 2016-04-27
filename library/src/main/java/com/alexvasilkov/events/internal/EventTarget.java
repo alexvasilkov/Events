@@ -4,10 +4,8 @@ import java.util.List;
 
 class EventTarget {
 
-    final Object targetObj;
+    volatile Object targetObj;
     final List<EventMethod> methods;
-
-    volatile boolean isUnregistered;
 
     EventTarget(Object targetObj) {
         this.targetObj = targetObj;

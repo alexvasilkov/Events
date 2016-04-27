@@ -27,8 +27,6 @@ import java.util.concurrent.Executors;
  */
 public class Dispatcher {
 
-    private static final long MAX_TIME_IN_MAIN_THREAD = 10L;
-
     private static final List<EventTarget> targets = new LinkedList<>();
     private static final LinkedList<Task> executionQueue = new LinkedList<>();
 
@@ -218,19 +216,19 @@ public class Dispatcher {
             throw new NullPointerException("Target cannot be null");
         }
 
-        boolean isUnregistered = false;
+        EventTarget target = null;
 
         for (Iterator<EventTarget> iterator = targets.iterator(); iterator.hasNext(); ) {
-            EventTarget target = iterator.next();
-            if (target.targetObj == targetObj) {
-                target.isUnregistered = true;
+            EventTarget listTarget = iterator.next();
+            if (listTarget.targetObj == targetObj) {
                 iterator.remove();
-                isUnregistered = true;
+                target = listTarget;
+                target.targetObj = null;
                 break;
             }
         }
 
-        if (!isUnregistered) {
+        if (target == null) {
             Utils.logE(targetObj, "Was not registered");
         }
 
@@ -286,6 +284,11 @@ public class Dispatcher {
     // Handles finished event
     @MainThread
     private static void handleTaskFinished(Task task) {
+        if (task.method.type != EventMethod.Type.SUBSCRIBE) {
+            // We are not interested in finished callbacks, only finished subscriber calls
+            return;
+        }
+
         activeTasks.remove(task);
 
         if (task.method.isSingleThread) {
@@ -333,7 +336,9 @@ public class Dispatcher {
 
         Task task;
         while ((task = pollExecutionTask()) != null) {
-            if (task.target.isUnregistered) {
+            if (task.target.targetObj == null) {
+                // Finishing task if target was unregistered
+                handleTaskFinished(task);
                 continue; // Target is unregistered
             }
 
@@ -357,10 +362,10 @@ public class Dispatcher {
             // Checking that we are not spending to much time on main thread
             long time = SystemClock.uptimeMillis() - started;
 
-            if (time > MAX_TIME_IN_MAIN_THREAD) {
+            if (time > EventsParams.getMaxTimeInUiThread()) {
                 if (EventsParams.isDebug()) {
                     Log.d(Utils.TAG, "Dispatching: time in main thread "
-                            + time + " ms > " + MAX_TIME_IN_MAIN_THREAD + " ms");
+                            + time + "ms > " + EventsParams.getMaxTimeInUiThread() + "ms");
                 }
                 executeTasks(true);
                 break;
