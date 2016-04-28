@@ -31,7 +31,6 @@ public class Dispatcher {
     private static final LinkedList<Task> executionQueue = new LinkedList<>();
 
     private static final Set<Event> activeEvents = new HashSet<>();
-    private static final Set<Task> activeTasks = new HashSet<>();
 
     private static final MainThreadHandler mainThreadHandler = new MainThreadHandler();
     private static final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
@@ -114,32 +113,12 @@ public class Dispatcher {
                 if (event.getKey().equals(method.eventKey)
                         && method.type == EventMethod.Type.SUBSCRIBE) {
 
-                    // If we'll find equivalent task (same target, same method, similar event)
-                    // which is not yet running, then we can skip execution of current event
-                    boolean skipEvent = false;
-
-                    for (Task task : activeTasks) {
-                        if (task.target == target && task.method == method
-                                && !task.isRunning && Event.isDeeplyEqual(task.event, event)) {
-
-                            Utils.log(event.getKey(), method, "Similar event found, skipping exec");
-
-                            skipEvent = true;
-                            break;
-                        }
-                    }
-
-                    if (skipEvent) {
-                        continue;
-                    }
-
                     Utils.log(event.getKey(), method, "Scheduling event execution");
 
                     ((EventBase) event).handlersCount++;
 
                     Task task = Task.create(target, method, event);
                     executionQueue.add(task);
-                    activeTasks.add(task);
                 }
             }
         }
@@ -288,8 +267,6 @@ public class Dispatcher {
             // We are not interested in finished callbacks, only finished subscriber calls
             return;
         }
-
-        activeTasks.remove(task);
 
         if (task.method.isSingleThread) {
             Utils.log(task, "Single-thread method is no longer in use");

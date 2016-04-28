@@ -18,8 +18,6 @@ class Task implements Runnable {
     private final EventResult result;
     private final EventFailure failure;
 
-    volatile boolean isRunning;
-
     private Task(EventTarget target, EventMethod method, Event event,
             EventStatus status, EventResult result, EventFailure failure) {
         this.target = target;
@@ -50,7 +48,6 @@ class Task implements Runnable {
     public void run() {
         Object targetObj = target.targetObj;
         if (targetObj != null) {
-            isRunning = true;
             run(method.isStatic ? null : targetObj);
         }
 
