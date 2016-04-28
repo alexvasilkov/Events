@@ -84,8 +84,8 @@ public class Event extends EventBase {
      * <p>Two events are considered deeply equal if they have same key and exactly same
      * parameters lists.</p>
      * <p>Parameters are compared using {@link Arrays#deepEquals(Object[], Object[])}, so be sure
-     * to
-     * have correct implementation of {@link Object#equals(Object)} method for all parameters.</p>
+     * to have correct implementation of {@link Object#equals(Object)} method for all parameters.
+     * </p>
      * <p>If you don't want some of parameters to be compared pass them as tags using
      * {@link Builder#tag(Object...)} builder method.</p>
      */
