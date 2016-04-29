@@ -80,7 +80,6 @@ class EventMethod {
                 failureArgs(args, event, failure);
                 break;
             default:
-                throw Utils.toException(eventKey, this, "Unknown method type: " + type);
         }
     }
 
