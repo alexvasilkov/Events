@@ -13,26 +13,7 @@ public class Counter {
         list.add(item);
     }
 
-    public void count() {
-        count(null);
-    }
-
-    public void checkCount(Object item, int expected) {
-        long total = 0;
-        for (Object listItem : list) {
-            if (listItem == item) {
-                total++;
-            }
-        }
-
-        assertEquals(expected, total);
-    }
-
-    public void checkCount(int expected) {
-        checkCount(null, expected);
-    }
-
-    public void checkOrder(Object... order) {
+    public void check(Object... order) {
         assertEquals(order == null ? 0 : order.length, list.size());
 
         if (order != null) {

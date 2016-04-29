@@ -15,7 +15,7 @@ public class EventsPostingTest extends AbstractTest {
     public void canPost() {
         // Event should only be triggered once
         post(new Target(), Events.create(TASK_KEY).param(counter));
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
@@ -23,14 +23,14 @@ public class EventsPostingTest extends AbstractTest {
     public void canPostStatic() {
         // Event should only be triggered once
         post(TargetStatic.class, Events.create(TASK_KEY).param(counter));
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
     @UiThreadTest
     public void canPostToHierarchy() {
         post(new TargetChild(), Events.create(TASK_KEY).param(counter));
-        counter.checkCount(2);
+        counter.check(Subscribe.class, Subscribe.class);
     }
 
     @Test
@@ -46,7 +46,7 @@ public class EventsPostingTest extends AbstractTest {
 
         // Event should not be triggered after un-registration
         Events.create(TASK_KEY).param(counter).post();
-        counter.checkCount(0);
+        counter.check();
     }
 
     @Test(expected = EventsException.class)
@@ -73,7 +73,7 @@ public class EventsPostingTest extends AbstractTest {
 
             // Event should only be triggered once (immediately since we are on UI thread)
             Events.create(TASK_KEY).param(counter).post();
-            counter.checkCount(1);
+            counter.check(Subscribe.class);
         } finally {
             Events.unregister(target);
         }
@@ -82,21 +82,21 @@ public class EventsPostingTest extends AbstractTest {
     private static class Target {
         @Subscribe(TASK_KEY)
         private void subscribe(Counter counter) {
-            counter.count();
+            counter.count(Subscribe.class);
         }
     }
 
     private static class TargetChild extends Target {
         @Subscribe(TASK_KEY)
         private void subscribe2(Counter counter) {
-            counter.count();
+            counter.count(Subscribe.class);
         }
     }
 
     private static class TargetStatic {
         @Subscribe(TASK_KEY)
         private static void subscribe(Counter counter) {
-            counter.count();
+            counter.count(Subscribe.class);
         }
     }
 

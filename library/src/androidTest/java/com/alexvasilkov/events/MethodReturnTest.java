@@ -28,12 +28,12 @@ public class MethodReturnTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private Object subscribe() {
-                counter.count();
+                counter.count(Subscribe.class);
                 return null;
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test(expected = EventsException.class)
@@ -79,7 +79,7 @@ public class MethodReturnTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe() {
-                counter.count();
+                counter.count(Subscribe.class);
             }
 
             @Result(TASK_KEY)
@@ -88,7 +88,7 @@ public class MethodReturnTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
@@ -109,8 +109,7 @@ public class MethodReturnTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(Subscribe.class, 1);
-        counter.checkCount(Result.class, 1);
+        counter.check(Subscribe.class, Result.class);
     }
 
     @Test
@@ -132,8 +131,7 @@ public class MethodReturnTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(Subscribe.class, 1);
-        counter.checkCount(Result.class, 1);
+        counter.check(Subscribe.class, Result.class);
     }
 
     @Test
@@ -157,8 +155,7 @@ public class MethodReturnTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(Subscribe.class, 1);
-        counter.checkCount(Result.class, 1);
+        counter.check(Subscribe.class, Result.class);
     }
 
 
@@ -172,12 +169,12 @@ public class MethodReturnTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private Object subscribe() {
-                counter.count();
+                counter.count(Subscribe.class);
                 throw ERROR;
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test(expected = EventsException.class)

@@ -1,6 +1,5 @@
 package com.alexvasilkov.events;
 
-import android.os.SystemClock;
 import android.support.test.annotation.UiThreadTest;
 
 import com.alexvasilkov.events.Events.Background;
@@ -8,8 +7,6 @@ import com.alexvasilkov.events.Events.Failure;
 import com.alexvasilkov.events.Events.Result;
 import com.alexvasilkov.events.Events.Status;
 import com.alexvasilkov.events.Events.Subscribe;
-import com.alexvasilkov.events.internal.EventsParams;
-import com.alexvasilkov.events.utils.Counter;
 
 import org.junit.Test;
 
@@ -17,7 +14,20 @@ import static org.junit.Assert.fail;
 
 public class EventsFlowTest extends AbstractTest {
 
-    private static final long BACKGROUND_THREAD_DELAY = 10L;
+    protected static final String STICKY_STATUS_TASK_KEY = "STICKY_STATUS_TASK_KEY";
+
+    @Test
+    @UiThreadTest
+    public void shouldHaveCorrectEmptyStatusFlow() {
+        post(new Object() {
+            @Status(TASK_KEY)
+            private void status(EventStatus status) {
+                counter.count(status);
+            }
+        });
+
+        counter.check(); // No status notifications, since no subscribers
+    }
 
     @Test
     @UiThreadTest
@@ -40,7 +50,7 @@ public class EventsFlowTest extends AbstractTest {
             }
         });
 
-        counter.checkOrder(EventStatus.STARTED, Subscribe.class, RESULT, EventStatus.FINISHED);
+        counter.check(EventStatus.STARTED, Subscribe.class, RESULT, EventStatus.FINISHED);
     }
 
     @Test
@@ -69,7 +79,7 @@ public class EventsFlowTest extends AbstractTest {
             }
         });
 
-        counter.checkOrder(EventStatus.STARTED, Subscribe.class, ERROR, EventStatus.FINISHED);
+        counter.check(EventStatus.STARTED, Subscribe.class, ERROR, EventStatus.FINISHED);
     }
 
     @Test
@@ -101,70 +111,34 @@ public class EventsFlowTest extends AbstractTest {
             }
         });
 
-        counter.checkOrder(EventStatus.STARTED, Subscribe.class,
+        counter.check(EventStatus.STARTED, Subscribe.class,
                 ERROR, false, Failure.class, true, EventStatus.FINISHED);
     }
 
-
     @Test
     @UiThreadTest
-    public void similarEventsShouldBeSkipped() {
+    public void shouldHaveCorrectStickyStatusFlow() {
         try {
-            Events.register(CountingStaticTarget.class);
-            Events.create(TASK_KEY).param(counter).post();
-            Events.create(TASK_KEY).param(counter).post();
-            Events.create(TASK_KEY).param(counter).post();
+            Events.register(StickyStatusTarget.class);
+            Events.post(STICKY_STATUS_TASK_KEY);
 
-            SystemClock.sleep(BACKGROUND_THREAD_DELAY); // Waiting for background thread to execute
-
-            counter.checkCount(1); // Counter should only be called once
+            registerAndUnregister(new Object() {
+                @Status(STICKY_STATUS_TASK_KEY)
+                private void status(EventStatus status) {
+                    counter.count(status);
+                }
+            });
         } finally {
-            Events.unregister(CountingStaticTarget.class);
+            Events.unregister(StickyStatusTarget.class);
         }
+
+        counter.check(EventStatus.STARTED);
     }
 
-
-    @Test
-    @UiThreadTest
-    public void mainThreadShouldNotBeBlockedForLongTime() {
-        Object target = new Object() {
-            @Status(TASK_KEY)
-            private void status(EventStatus status) {
-                SystemClock.sleep(11L);
-                counter.count(Status.class);
-            }
-
-            @Subscribe(TASK_KEY)
-            private Object subscribe(Event event) {
-                fail("Subscriber should not be executed");
-                return null;
-            }
-
-            @Failure(TASK_KEY)
-            private void failure(Throwable throwable) throws Throwable {
-                throw throwable; // Throwing out
-            }
-        };
-
-        try {
-            EventsParams.setMaxTimeInUiThread(10L);
-
-            Events.register(target);
-            Event.create(TASK_KEY).post();
-            // Only "started" status should be executed, all other events should be delayed
-            counter.checkCount(Status.class, 1);
-        } finally {
-            Events.unregister(target);
-        }
-    }
-
-
-    private static class CountingStaticTarget {
-        @Background(singleThread = true)
-        @Subscribe(TASK_KEY)
-        private static void subscribe(Counter counter) {
-            counter.count();
-        }
+    private static class StickyStatusTarget {
+        @Background
+        @Subscribe(STICKY_STATUS_TASK_KEY)
+        private static void subscribe() {}
     }
 
 }

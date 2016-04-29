@@ -3,6 +3,7 @@ package com.alexvasilkov.events;
 import android.support.test.annotation.UiThreadTest;
 
 import com.alexvasilkov.events.Events.Result;
+import com.alexvasilkov.events.Events.Status;
 import com.alexvasilkov.events.Events.Subscribe;
 
 import org.junit.Test;
@@ -13,8 +14,8 @@ public class EventsManualResultTest extends AbstractTest {
 
     @Test
     @UiThreadTest
-    public void canPostResultFromActiveEvent() {
-        Object target = new Object() {
+    public void canPostResult() {
+        post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe(Event event) {
                 event.postResult();
@@ -24,16 +25,34 @@ public class EventsManualResultTest extends AbstractTest {
             private void result() {
                 counter.count(Result.class);
             }
-        };
+        });
 
-        try {
-            Events.register(target);
-            Events.create(TASK_KEY).post();
+        counter.check(Result.class);
+    }
 
-            counter.checkCount(Result.class, 1);
-        } finally {
-            Events.unregister(target);
-        }
+    @Test
+    @UiThreadTest
+    public void canPostSeveralResults() {
+        post(new Object() {
+            @Subscribe(TASK_KEY)
+            private void subscribe(Event event) {
+                event.postResult(1);
+                event.postResult(2);
+                event.postResult(3);
+            }
+
+            @Status(TASK_KEY)
+            private void status(EventStatus status) {
+                counter.count(status);
+            }
+
+            @Result(TASK_KEY)
+            private void result(int result) {
+                counter.count(result);
+            }
+        });
+
+        counter.check(EventStatus.STARTED, 1, 2, 3, EventStatus.FINISHED);
     }
 
     @Test
@@ -51,8 +70,11 @@ public class EventsManualResultTest extends AbstractTest {
 
         try {
             Events.register(target);
+
+            // Since we're posting from UI thread event will be stated and finished synchronously
             Event event = Event.create(TASK_KEY).post();
-            event.postResult(); // Should be ignored
+            // At this point event is already finished, so posted result should be ignored
+            event.postResult();
         } finally {
             Events.unregister(target);
         }

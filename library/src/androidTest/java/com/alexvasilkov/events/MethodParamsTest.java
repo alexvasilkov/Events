@@ -28,11 +28,11 @@ public class MethodParamsTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe() {
-                counter.count();
+                counter.count(Subscribe.class);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
@@ -41,13 +41,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe(Event event) {
-                counter.count();
+                counter.count(Subscribe.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class MethodParamsTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe(Event event, Object param1, Object param2) {
-                counter.count();
+                counter.count(Subscribe.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
                 assertEquals(PARAM, param1);
@@ -64,7 +64,7 @@ public class MethodParamsTest extends AbstractTest {
             }
         }, Events.create(TASK_KEY).param(PARAM));
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
     @Test
@@ -73,13 +73,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new Object() {
             @Subscribe(TASK_KEY)
             private void subscribe(Object param1, Object param2) {
-                counter.count();
+                counter.count(Subscribe.class);
                 assertEquals(PARAM, param1);
                 assertNull(param2);
             }
         }, Events.create(TASK_KEY).param(PARAM));
 
-        counter.checkCount(1);
+        counter.check(Subscribe.class);
     }
 
 
@@ -93,12 +93,12 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Status(TASK_KEY)
             private void status(EventStatus status) {
-                counter.count();
                 assertNotNull(status);
+                counter.count(status);
             }
         });
 
-        counter.checkCount(2);  // For START and FINISH statuses
+        counter.check(EventStatus.STARTED, EventStatus.FINISHED);
     }
 
     @Test
@@ -107,14 +107,14 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Status(TASK_KEY)
             private void status(Event event, EventStatus status) {
-                counter.count();
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
                 assertNotNull(status);
+                counter.count(status);
             }
         });
 
-        counter.checkCount(2);  // For START and FINISH statuses
+        counter.check(EventStatus.STARTED, EventStatus.FINISHED);
     }
 
     @Test(expected = EventsException.class)
@@ -182,11 +182,11 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result() {
-                counter.count();
+                counter.count(Result.class);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test
@@ -195,13 +195,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result(Event event) {
-                counter.count();
+                counter.count(Result.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result(Event event, Object result1, Object result2) {
-                counter.count();
+                counter.count(Result.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
                 assertEquals(RESULT, result1);
@@ -218,7 +218,7 @@ public class MethodParamsTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test
@@ -227,7 +227,7 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result(Event event, EventResult result) {
-                counter.count();
+                counter.count(Result.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
                 assertNotNull(result);
@@ -236,7 +236,7 @@ public class MethodParamsTest extends AbstractTest {
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test
@@ -245,13 +245,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result(Object result1, Object result2) {
-                counter.count();
+                counter.count(Result.class);
                 assertEquals(RESULT, result1);
                 assertNull(result2);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test
@@ -260,14 +260,14 @@ public class MethodParamsTest extends AbstractTest {
         post(new SubscribedTarget() {
             @Result(TASK_KEY)
             private void result(EventResult result) {
-                counter.count();
+                counter.count(Result.class);
                 assertNotNull(result);
                 assertEquals(RESULT, result.getResult(0));
                 assertNull(result.getResult(1));
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Result.class);
     }
 
     @Test(expected = EventsException.class)
@@ -299,11 +299,11 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure() {
-                counter.count();
+                counter.count(Failure.class);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test
@@ -312,13 +312,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure(Event event) {
-                counter.count();
+                counter.count(Failure.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test
@@ -327,14 +327,14 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure(Event event, Throwable error) {
-                counter.count();
+                counter.count(Failure.class);
                 assertNotNull(event);
                 assertEquals(TASK_KEY, event.getKey());
                 assertEquals(ERROR, error);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test
@@ -343,14 +343,14 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure(Event event, EventFailure failure) {
-                counter.count();
+                counter.count(Failure.class);
                 assertNotNull(event);
                 assertNotNull(failure);
                 assertEquals(ERROR, failure.getError());
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test
@@ -359,12 +359,12 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure(Throwable error) {
-                counter.count();
+                counter.count(Failure.class);
                 assertEquals(ERROR, error);
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test
@@ -373,13 +373,13 @@ public class MethodParamsTest extends AbstractTest {
         post(new ThrowTarget() {
             @Failure(TASK_KEY)
             private void failure(EventFailure failure) {
-                counter.count();
+                counter.count(Failure.class);
                 assertNotNull(failure);
                 assertEquals(ERROR, failure.getError());
             }
         });
 
-        counter.checkCount(1);
+        counter.check(Failure.class);
     }
 
     @Test(expected = EventsException.class)
