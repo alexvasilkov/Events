@@ -9,36 +9,44 @@ import android.support.annotation.NonNull;
 import com.alexvasilkov.events.Event;
 import com.alexvasilkov.events.EventResult;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-@SuppressWarnings("unused")
 public class MemoryCache implements CacheProvider {
 
     public static final long NO_TIME_LIMIT = 0L;
 
-    private static final Map<String, CacheEntry> cache = new HashMap<>();
-    private static final Handler handler = new CacheHandler();
-
+    private final Map<String, CacheEntry> cache = new HashMap<>();
+    private final CacheHandler handler = new CacheHandler(this);
     private final long maxLifetime;
-    private final boolean isClearExpired;
 
+    @SuppressWarnings("unused") // Used through reflection
     public MemoryCache() {
-        this(NO_TIME_LIMIT, false);
+        this(NO_TIME_LIMIT);
     }
 
-    public MemoryCache(long maxLifetime, boolean isClearExpired) {
+    public MemoryCache(long maxLifetime) {
         this.maxLifetime = maxLifetime;
-        this.isClearExpired = isClearExpired;
+    }
+
+    /**
+     * @deprecated {@code isClearExpired} parameter is ignored (it will always be true),
+     * so use {@link #MemoryCache(long)} constructor instead.
+     */
+    @SuppressWarnings("UnusedParameters")
+    @Deprecated
+    public MemoryCache(long maxLifetime, boolean isClearExpired) {
+        this(maxLifetime);
     }
 
     @Override
     public EventResult loadFromCache(@NonNull Event event) {
         synchronized (cache) {
+            clearExpired();
             CacheEntry entry = cache.get(toCacheKey(event));
-            boolean expired = entry == null || entry.expires < SystemClock.uptimeMillis();
-            return entry == null || expired ? null : entry.result;
+            return entry == null ? null : entry.result;
         }
     }
 
@@ -47,9 +55,18 @@ public class MemoryCache implements CacheProvider {
         synchronized (cache) {
             long expires = maxLifetime == NO_TIME_LIMIT
                     ? Long.MAX_VALUE : SystemClock.uptimeMillis() + maxLifetime;
-            cache.put(toCacheKey(event), new CacheEntry(result, expires, isClearExpired));
-            if (isClearExpired) {
-                handler.sendEmptyMessageAtTime(0, expires + 10);
+            cache.put(toCacheKey(event), new CacheEntry(result, expires));
+            handler.clear(expires);
+        }
+    }
+
+    protected void clearExpired() {
+        synchronized (cache) {
+            long now = SystemClock.uptimeMillis();
+            for (Iterator<CacheEntry> iterator = cache.values().iterator(); iterator.hasNext(); ) {
+                if (iterator.next().expires < now) {
+                    iterator.remove();
+                }
             }
         }
     }
@@ -66,35 +83,34 @@ public class MemoryCache implements CacheProvider {
         return builder.toString();
     }
 
+
     private static class CacheEntry {
         final EventResult result;
         final long expires;
-        final boolean isClearExpired;
 
-        private CacheEntry(EventResult result, long expires, boolean isClearExpired) {
+        private CacheEntry(EventResult result, long expires) {
             this.result = result;
             this.expires = expires;
-            this.isClearExpired = isClearExpired;
         }
     }
 
     private static class CacheHandler extends Handler {
-        CacheHandler() {
+        private WeakReference<MemoryCache> cache;
+
+        CacheHandler(MemoryCache cache) {
             super(Looper.getMainLooper());
+            this.cache = new WeakReference<>(cache);
+        }
+
+        private void clear(long when) {
+            sendEmptyMessageAtTime(0, when + 10L);
         }
 
         @Override
         public void handleMessage(@NonNull Message msg) {
-            synchronized (cache) {
-                long now = SystemClock.uptimeMillis();
-                Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
-
-                while (iterator.hasNext()) {
-                    CacheEntry entry = iterator.next().getValue();
-                    if (entry.isClearExpired && entry.expires < now) {
-                        iterator.remove();
-                    }
-                }
+            MemoryCache cache = this.cache.get();
+            if (cache != null) {
+                cache.clearExpired();
             }
         }
     }
