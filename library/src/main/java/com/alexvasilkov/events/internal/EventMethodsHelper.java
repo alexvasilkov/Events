@@ -13,6 +13,7 @@ import com.alexvasilkov.events.EventsException;
 import com.alexvasilkov.events.cache.CacheProvider;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -185,7 +186,9 @@ class EventMethodsHelper {
         Class<? extends CacheProvider> cacheClazz = an.value();
 
         try {
-            return cacheClazz.newInstance();
+            Constructor<? extends CacheProvider> constructor = cacheClazz.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
         } catch (Exception e) {
             throw new EventsException("Cannot instantiate cache provider "
                     + cacheClazz.getSimpleName() + " for method "
