@@ -321,12 +321,8 @@ public class Dispatcher {
 
             if (task.method.isBackground) {
                 if (task.method.isSingleThread) {
-                    if (task.method.isInUse) {
-                        continue;
-                    } else {
-                        Utils.log(task, "Single-thread method is in use now");
-                        task.method.isInUse = true;
-                    }
+                    Utils.log(task, "Single-thread method is in use now");
+                    task.method.isInUse = true;
                 }
 
                 Utils.log(task, "Executing in background");
