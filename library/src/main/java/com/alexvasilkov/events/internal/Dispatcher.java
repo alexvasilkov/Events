@@ -407,7 +407,7 @@ public class Dispatcher {
         }
 
         private void sendDelayed(int msgId, Object data, boolean forceDelay) {
-            if (!forceDelay && Looper.getMainLooper().getThread() == Thread.currentThread()) {
+            if (!forceDelay && Looper.getMainLooper() == Looper.myLooper()) {
                 handleMessageId(msgId, data);
             } else {
                 sendMessageDelayed(obtainMessage(msgId, data), MESSAGE_DELAY);
