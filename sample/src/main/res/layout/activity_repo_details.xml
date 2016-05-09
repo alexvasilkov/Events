@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/margin"
+        tools:ignore="ScrollViewSize">
+
+        <ImageView
+            android:id="@+id/repo_details_image"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="4dp"
+            tools:src="@android:color/darker_gray" />
+
+        <com.alexvasilkov.events.sample.ui.view.RepoExtraView
+            android:id="@+id/repo_details_extra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/margin"
+            android:layout_marginTop="4dp"
+            android:layout_toRightOf="@id/repo_details_image" />
+
+        <TextView
+            android:id="@+id/repo_details_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/repo_details_extra"
+            android:layout_below="@id/repo_details_extra"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="16sp"
+            tools:text="Repo name" />
+
+        <TextView
+            android:id="@+id/repo_details_user_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/repo_details_name"
+            android:layout_below="@id/repo_details_name"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="12sp"
+            tools:text="by Username" />
+
+        <TextView
+            android:id="@+id/repo_details_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/repo_details_image"
+            android:layout_marginTop="@dimen/margin"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="14sp"
+            tools:text="Repo description\nspans serveral\nlines" />
+
+        <com.alexvasilkov.events.sample.ui.view.StatusView
+            android:id="@+id/repo_details_status"
+            android:layout_width="@dimen/status_view_size"
+            android:layout_height="@dimen/status_view_size"
+            android:layout_below="@id/repo_details_description"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="32dp" />
+
+        <WebView
+            android:id="@+id/repo_details_readme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/repo_details_description"
+            android:layout_marginTop="@dimen/margin"
+            android:background="?android:attr/colorBackground"
+            android:scrollbars="none" />
+
+    </RelativeLayout>
+
+</ScrollView>

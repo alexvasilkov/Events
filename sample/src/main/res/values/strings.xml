@@ -1,0 +1,12 @@
+<resources>
+
+    <string name="app_name">Events Sample</string>
+
+    <string name="title_repositories">Recent</string>
+    <string name="title_repository">Repository</string>
+    <string name="title_performance">Performance</string>
+
+    <string name="text_repo_by">by %s</string>
+    <string name="text_error_loading_readme">Can\'t load README</string>
+
+</resources>

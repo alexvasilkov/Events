@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?selectableItemBackground"
+    android:padding="@dimen/margin">
+
+    <ImageView
+        android:id="@+id/repo_item_image"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="8dp"
+        tools:src="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/repo_item_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/margin"
+        android:layout_toRightOf="@id/repo_item_image"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="?android:textColorPrimary"
+        android:textSize="16sp"
+        tools:text="Repo name" />
+
+    <TextView
+        android:id="@+id/repo_item_user_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/repo_item_name"
+        android:layout_below="@id/repo_item_name"
+        android:textColor="?android:textColorPrimary"
+        android:textSize="12sp"
+        tools:text="by Username" />
+
+    <TextView
+        android:id="@+id/repo_item_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/repo_item_user_name"
+        android:layout_below="@id/repo_item_user_name"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="14sp"
+        tools:text="Repo description\nspans serveral\nlines" />
+
+    <com.alexvasilkov.events.sample.ui.view.RepoExtraView
+        android:id="@+id/repo_item_extras"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/repo_item_description"
+        android:layout_below="@id/repo_item_description"
+        android:layout_marginTop="4dp" />
+
+</RelativeLayout>

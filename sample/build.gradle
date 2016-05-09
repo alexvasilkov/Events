@@ -1,37 +1,44 @@
-buildscript {
-    dependencies {
-        classpath 'com.alexvasilkov:android-sign-release:0.8.1'
-    }
-}
-
 apply plugin: 'com.android.application'
-apply plugin: 'com.alexvasilkov.sign'
 
 android {
     compileSdkVersion 23
     buildToolsVersion '23.0.3'
 
     defaultConfig {
-        minSdkVersion 14
+        applicationId 'com.alexvasilkov.events.sample'
+        minSdkVersion 16
         targetSdkVersion 23
-        versionCode 7
-        versionName '0.5.0-beta-1'
+        versionCode 8
+        versionName '1.0.0'
     }
 
     signingConfigs {
-        release {
-            storeFile file('events-release-key.keystore')
-            keyAlias 'release'
+        debug {
+            storeFile file('debug.keystore')
         }
     }
 
     buildTypes {
-        release {
-            signingConfig signingConfigs.release
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 }
 
 dependencies {
     compile project(':library')
+    compile 'com.android.support:design:23.3.0'
+    compile 'com.android.support:appcompat-v7:23.3.0'
+    compile 'com.android.support:recyclerview-v7:23.3.0'
+
+    compile 'com.squareup.okhttp3:okhttp:3.2.0'
+    compile 'com.squareup.retrofit2:retrofit:2.0.2'
+    compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+
+    compile 'com.squareup.picasso:picasso:2.5.2'
+    compile 'com.jakewharton.picasso:picasso2-okhttp3-downloader:1.0.2'
+
+    compile 'com.alexvasilkov:android-commons:1.2.4'
+
+    compile 'com.github.rjeschke:txtmark:0.13'
 }
