@@ -17,10 +17,14 @@ Posting event is the first part of event's journey through the bus.
 Each event consists of mandatory event key (string) and optional parameters and tags. 
 
 Posting event without parameters:  
-`Events.post(EventsKeys.ON_CLICK);`
+```java
+Events.post(EventsKeys.ON_CLICK);
+```
 
 Posting event with dynamic parameters:  
-`Events.create(EventsKeys.ON_CLICK).param(item, true).post();`
+```java
+Events.create(EventsKeys.ON_CLICK).param(item, true).post();
+```
 
 #### Subscribing ####
 
@@ -28,7 +32,7 @@ Next we'll need to register events subscribers. Subscribers are methods which wi
 when event is posted into the bus. This is next step of event's journey.
 
 Subscribing to particular event:  
-```
+```java
 @Events.Subscribe(EventsKeys.ON_CLICK)
 private void onClick(Item item, boolean expand) {
     ...
@@ -42,18 +46,22 @@ Another options and more info can be found in `Events.Subscribe` javadoc.
 
 Now we need to register subscriber within event bus. That's done by passing instance of the object
 containing previous method:  
-`Events.register(this);`
+```java
+Events.register(this);
+```
 
 Note that all methods from immediate class type as well as from all super types will be registered.
 
 Don't forget to unregister subscriber when it is no more needed:  
-`Events.unregister(this);`
+```java
+Events.unregister(this);
+```
 
 #### Multithreading ####
 
 Subscriber can choose to be executed in background to offload the main thread.
 This is done using `Events.Background` annotation:  
-```
+```java
 @Events.Background
 @Events.Subscribe(EventsKeys.LOAD_REPOSITORY)
 private static void loadRepository(String repoId) {
@@ -63,7 +71,9 @@ private static void loadRepository(String repoId) {
 The only difference from regular subscription is that method must be static now.
 
 In order to register such subscriber you will need to pass class type instead of particular instance:  
-`Events.register(BackgroundTasks.class);`
+```java
+Events.register(BackgroundTasks.class);
+```
 
 This ensures that you will not accidentally leak an object (i.e. Activity) which should not be kept
 in memory during background execution.
@@ -75,7 +85,7 @@ Once method is posted you may want to track it's execution. Few methods are avai
 ##### Status #####
 
 Subscribing for execution started / finished state:
-```
+```java
 @Events.Status(EventsKeys.LOAD_REPOSITORY)
 private static void onLoadRepositoryStatus(EventStatus status) {
     ...
@@ -87,7 +97,7 @@ state is always the last one. See `Events.Status` for more details.
 ##### Result #####
 
 To receive subscriber execution results you will need to specify return value for subscriber method:
-```
+```java
 @Events.Subscribe(EventsKeys.LOAD_REPOSITORY)
 private static List<Repository> loadRepository(String repoId) {
     ...
@@ -95,7 +105,7 @@ private static List<Repository> loadRepository(String repoId) {
 }
 ```  
 And then you can receive the result using:
-```
+```java
 @Events.Result(EventsKeys.LOAD_REPOSITORY)
 private void onLoadRepositoryResult(List<Repository> list) {
     ...
@@ -109,7 +119,7 @@ Errors may occur during subscriber execution. All errors are caught and logged b
 but you may also want to provide custom error handling logic.
 
 Consider you have next subscriber:
-```
+```java
 @Events.Subscribe(EventsKeys.LOAD_REPOSITORY)
 private static List<Repository> loadRepository(String repoId) throws IOException {
     ...
@@ -117,14 +127,14 @@ private static List<Repository> loadRepository(String repoId) throws IOException
 }
 ```    
 Such exception can be handled using:
-```
+```java
 @Events.Failure(EventsKeys.LOAD_REPOSITORY)
 private void onLoadRepositoryFailure(Throwable error) {
     ...
 }
 ```  
 You may also add global error handler by skipping event key:
-```
+```java
 @Events.Failure
 private static void onAnyError(Throwable error) {
     ...
