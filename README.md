@@ -48,7 +48,7 @@ see Multithreading section below.
 Any method names and access modifiers are allowed. Method parameters can be of any number and any
 types but they should match the one which was posted by sender.
 Another options and more info can be found in
-[`Events.Subscribe`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Subscribe.html)
+[`Events.Subscribe`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Subscribe.html)
 javadoc. 
 
 Now we need to register subscriber within event bus. That's done by passing instance of the object
@@ -70,7 +70,7 @@ Events.unregister(this);
 
 Subscriber can choose to be executed in background to offload the main thread.
 This is done using
-[`Events.Background`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Background.html)
+[`Events.Background`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Background.html)
 annotation:
 
 ```java
@@ -109,7 +109,7 @@ private static void onLoadRepositoryStatus(EventStatus status) {
 
 `STARTED` state is always called before any results or failure callbacks (see further)
 and `FINISHED` state is always the last one. See
-[`Events.Status`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Status.html)
+[`Events.Status`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Status.html)
 for more details.
 
 ##### Result #####
@@ -136,7 +136,7 @@ private void onLoadRepositoryResult(List<Repository> list) {
 Note that you may receive several results if, for example, several subscribers were registered
 or several results were posted from single subscriber. There are also a few ways to provide
 subscriber execution result. See 
-[`Events.Result`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Result.html)
+[`Events.Result`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Result.html)
 javadoc for more details.
 
 ##### Failures #####
@@ -173,7 +173,7 @@ private static void onAnyError(Throwable error) {
 ```
 
 More info can be found in
-[`Events.Failure`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Failure.html)
+[`Events.Failure`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Failure.html)
 javadoc.
 
 
@@ -184,11 +184,11 @@ in background.
 
 ```groovy
 dependencies {
-    compile 'com.alexvasilkov:events:0.5.0-beta-1'
+    compile 'com.alexvasilkov:events:1.0.0'
 }
 ```
 
-[Javadoc](http://www.javadoc.io/doc/com.alexvasilkov/events/0.5.0-beta-1) documentation.
+[Javadoc](http://www.javadoc.io/doc/com.alexvasilkov/events/1.0.0) documentation.
 
 #### License ####
 
