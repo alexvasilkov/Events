@@ -27,13 +27,15 @@ import java.util.concurrent.Executors;
  */
 public class Dispatcher {
 
+    private static final int MAX_THREADS = 5;
+
     private final List<EventTarget> targets = new LinkedList<>();
     private final LinkedList<Task> executionQueue = new LinkedList<>();
 
     private final Set<Event> activeEvents = new HashSet<>();
 
     private final MainThreadHandler mainThreadHandler = new MainThreadHandler(this);
-    private final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService backgroundExecutor = Executors.newFixedThreadPool(MAX_THREADS);
 
     private boolean isExecuting;
 
