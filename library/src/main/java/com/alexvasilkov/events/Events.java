@@ -14,7 +14,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * TODO: documentation.
+ * Entry point to event bus registration and posting.
+ * <p/>
+ * Subscribers are methods marked with {@link Subscribe} annotation, callbacks are methods
+ * marked with either {@link Status}, {@link Result} or {@link Failure} annotations.<br/>
+ * There are also {@link Background} and {@link Cache} annotations which control subscription
+ * execution flow.<br/>
+ * To {@link #register(Object) register} and {@link #unregister(Object) unregister} subscribers and
+ * callbacks use corresponding methods.
+ * <p/>
+ * To post events into event bus use either {@link #post(String)} or {@link #create(String)}
+ * methods.
  */
 public class Events {
 
@@ -38,18 +48,35 @@ public class Events {
     }
 
 
+    /**
+     * Registers target within event bus.
+     *
+     * @param target Either class instance (for non-static methods registration)
+     * or class type (for static methods registration).
+     */
     public static void register(@NonNull Object target) {
         dispatcher.register(target);
     }
 
+    /**
+     * Unregisters target from event bus.
+     *
+     * @param target Previously registered target.
+     */
     public static void unregister(@NonNull Object target) {
         dispatcher.unregister(target);
     }
 
+    /**
+     * Creates event builder for provided event key.
+     */
     public static Event.Builder create(@NonNull String eventKey) {
         return new Event.Builder(dispatcher, eventKey);
     }
 
+    /**
+     * Creates and post event with provided event key.
+     */
     public static Event post(@NonNull String eventKey) {
         return new Event.Builder(dispatcher, eventKey).post();
     }
