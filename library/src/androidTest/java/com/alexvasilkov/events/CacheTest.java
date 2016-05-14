@@ -107,6 +107,13 @@ public class CacheTest extends AbstractTest {
         });
     }
 
+    @Test
+    @UiThreadTest
+    public void testCacheProviderCreatedOnceInHierarchy() {
+        registerAndUnregister(new TargetParent() {});
+        registerAndUnregister(new TargetParent() {});
+    }
+
 
     // ----------------------------
     // Test cache providers
@@ -172,6 +179,31 @@ public class CacheTest extends AbstractTest {
 
         @Override
         public void saveToCache(@NonNull Event event, EventResult result) throws Exception {}
+    }
+
+    private static class TestProviderCreatedOnce implements CacheProvider {
+        private static int created;
+
+        TestProviderCreatedOnce() {
+            if (++created > 1) {
+                fail("Cache provider should only be created once");
+            }
+        }
+
+        @Override
+        public EventResult loadFromCache(@NonNull Event event) throws Exception {
+            return null;
+        }
+
+        @Override
+        public void saveToCache(@NonNull Event event, EventResult result) throws Exception {}
+    }
+
+
+    private static class TargetParent {
+        @Cache(TestProviderCreatedOnce.class)
+        @Subscribe(TASK_KEY)
+        private void subscribe() {}
     }
 
 }

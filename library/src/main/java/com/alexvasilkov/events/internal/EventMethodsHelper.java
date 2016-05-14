@@ -17,6 +17,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,9 +50,7 @@ class EventMethodsHelper {
         if (methods == null) {
             long start = System.nanoTime();
 
-            methods = new ArrayList<>();
-            collectMethods(clazz, methods, statics);
-            cache.put(clazz, methods);
+            methods = collectMethodsRecursively(clazz, cache, statics);
 
             if (EventsParams.isDebug()) {
                 long time = System.nanoTime() - start;
@@ -63,12 +62,35 @@ class EventMethodsHelper {
         return methods;
     }
 
-    private static void collectMethods(Class<?> clazz, List<EventMethod> list, boolean statics) {
-        // Ignoring system classes
-        if (clazz.getName().startsWith("android.") || clazz.getName().startsWith("java.")) {
-            return;
-        }
+    @NonNull
+    private static List<EventMethod> collectMethodsRecursively(Class<?> clazz,
+            Map<Class<?>, List<EventMethod>> cache, boolean statics) {
 
+        List<EventMethod> list = cache.get(clazz);
+
+        if (list != null) {
+            return list;
+        } else if (clazz.getName().startsWith("android.") || clazz.getName().startsWith("java.")) {
+            // Ignoring system classes
+            return Collections.emptyList();
+        } else {
+            list = new ArrayList<>();
+
+            // First adding all methods from super classes
+            if (clazz.getSuperclass() != null) {
+                List<EventMethod> superList = collectMethodsRecursively(
+                        clazz.getSuperclass(), cache, statics);
+                list.addAll(superList);
+            }
+
+            // Now collecting methods from current class and store result in cache
+            collectMethods(clazz, list, statics);
+            cache.put(clazz, list);
+            return list;
+        }
+    }
+
+    private static void collectMethods(Class<?> clazz, List<EventMethod> list, boolean statics) {
         // Looking for methods annotated as event handlers
         Method[] methods = clazz.getDeclaredMethods();
         EventMethod info;
@@ -147,10 +169,6 @@ class EventMethodsHelper {
                         + " marked with @" + Background.class.getSimpleName() + " should be static."
                         + " To subscribe static methods pass Class object to Events.register()");
             }
-        }
-
-        if (clazz.getSuperclass() != null) {
-            collectMethods(clazz.getSuperclass(), list, statics);
         }
     }
 
