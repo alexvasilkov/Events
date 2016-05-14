@@ -18,6 +18,8 @@ import java.lang.annotation.Target;
  */
 public class Events {
 
+    private static final Dispatcher dispatcher = new Dispatcher();
+
     private Events() {
         // No instances
     }
@@ -37,19 +39,19 @@ public class Events {
 
 
     public static void register(@NonNull Object target) {
-        Dispatcher.register(target);
+        dispatcher.register(target);
     }
 
     public static void unregister(@NonNull Object target) {
-        Dispatcher.unregister(target);
+        dispatcher.unregister(target);
     }
 
     public static Event.Builder create(@NonNull String eventKey) {
-        return Event.create(eventKey);
+        return new Event.Builder(dispatcher, eventKey);
     }
 
     public static Event post(@NonNull String eventKey) {
-        return Event.create(eventKey).post();
+        return new Event.Builder(dispatcher, eventKey).post();
     }
 
 

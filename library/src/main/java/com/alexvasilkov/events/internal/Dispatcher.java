@@ -27,65 +27,62 @@ import java.util.concurrent.Executors;
  */
 public class Dispatcher {
 
-    private static final List<EventTarget> targets = new LinkedList<>();
-    private static final LinkedList<Task> executionQueue = new LinkedList<>();
+    private final List<EventTarget> targets = new LinkedList<>();
+    private final LinkedList<Task> executionQueue = new LinkedList<>();
 
-    private static final Set<Event> activeEvents = new HashSet<>();
+    private final Set<Event> activeEvents = new HashSet<>();
 
-    private static final MainThreadHandler mainThreadHandler = new MainThreadHandler();
-    private static final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
+    private final MainThreadHandler mainThreadHandler = new MainThreadHandler(this);
+    private final ExecutorService backgroundExecutor = Executors.newCachedThreadPool();
 
-    private static boolean isExecuting;
+    private boolean isExecuting;
 
-    private Dispatcher() {
-        // No instances
-    }
 
     // Registers events target
-    public static void register(Object targetObj) {
+    public void register(Object targetObj) {
         mainThreadHandler.register(targetObj);
     }
 
     // Unregisters events target
-    public static void unregister(Object targetObj) {
+    public void unregister(Object targetObj) {
         mainThreadHandler.unregister(targetObj);
     }
 
     // Schedules event execution
-    public static void postEvent(Event event) {
+    public void postEvent(Event event) {
         mainThreadHandler.postEvent(event);
     }
 
     // Schedules result callback
-    public static void postEventResult(Event event, EventResult result) {
+    public void postEventResult(Event event, EventResult result) {
         mainThreadHandler.postEventResult(event, result);
     }
 
     // Schedules failure callback
-    public static void postEventFailure(Event event, EventFailure failure) {
+    public void postEventFailure(Event event, EventFailure failure) {
         mainThreadHandler.postEventFailure(event, failure);
     }
 
     // Schedules finished status callback
-    public static void postTaskFinished(Task task) {
+    public void postTaskFinished(Task task) {
         mainThreadHandler.postTaskFinished(task);
     }
 
     // Schedules tasks execution on main thread
-    private static void executeTasks(boolean delay) {
+    private void executeTasks(boolean delay) {
         mainThreadHandler.executeTasks(delay);
     }
 
 
     // Schedules status updates of all active events for given target.
     @MainThread
-    private static void scheduleActiveStatusesUpdates(EventTarget target, EventStatus status) {
+    private void scheduleActiveStatusesUpdates(EventTarget target, EventStatus status) {
         for (Event event : activeEvents) {
             for (EventMethod method : target.methods) {
                 if (event.getKey().equals(method.eventKey)
                         && method.type == EventMethod.Type.STATUS) {
                     Utils.log(event.getKey(), method, "Scheduling status update for new target");
-                    executionQueue.addFirst(Task.create(target, method, event, status));
+                    executionQueue.addFirst(Task.create(this, target, method, event, status));
                 }
             }
         }
@@ -93,13 +90,13 @@ public class Dispatcher {
 
     // Schedules status update of given event for all registered targets.
     @MainThread
-    private static void scheduleStatusUpdates(Event event, EventStatus status) {
+    private void scheduleStatusUpdates(Event event, EventStatus status) {
         for (EventTarget target : targets) {
             for (EventMethod method : target.methods) {
                 if (event.getKey().equals(method.eventKey)
                         && method.type == EventMethod.Type.STATUS) {
                     Utils.log(event.getKey(), method, "Scheduling status update");
-                    executionQueue.add(Task.create(target, method, event, status));
+                    executionQueue.add(Task.create(this, target, method, event, status));
                 }
             }
         }
@@ -107,7 +104,7 @@ public class Dispatcher {
 
     // Schedules handling of given event for all registered targets.
     @MainThread
-    private static void scheduleSubscribersInvocation(Event event) {
+    private void scheduleSubscribersInvocation(Event event) {
         for (EventTarget target : targets) {
             for (EventMethod method : target.methods) {
                 if (event.getKey().equals(method.eventKey)
@@ -117,7 +114,7 @@ public class Dispatcher {
 
                     ((EventBase) event).handlersCount++;
 
-                    Task task = Task.create(target, method, event);
+                    Task task = Task.create(this, target, method, event);
                     executionQueue.add(task);
                 }
             }
@@ -126,13 +123,13 @@ public class Dispatcher {
 
     // Schedules sending result to all registered targets.
     @MainThread
-    private static void scheduleResultCallbacks(Event event, EventResult result) {
+    private void scheduleResultCallbacks(Event event, EventResult result) {
         for (EventTarget target : targets) {
             for (EventMethod method : target.methods) {
                 if (event.getKey().equals(method.eventKey)
                         && method.type == EventMethod.Type.RESULT) {
                     Utils.log(event.getKey(), method, "Scheduling result callback");
-                    executionQueue.add(Task.create(target, method, event, result));
+                    executionQueue.add(Task.create(this, target, method, event, result));
                 }
             }
         }
@@ -140,14 +137,14 @@ public class Dispatcher {
 
     // Schedules sending failure callback to all registered targets.
     @MainThread
-    private static void scheduleFailureCallbacks(Event event, EventFailure failure) {
+    private void scheduleFailureCallbacks(Event event, EventFailure failure) {
         // Sending failure callback for explicit handlers of given event
         for (EventTarget target : targets) {
             for (EventMethod method : target.methods) {
                 if (event.getKey().equals(method.eventKey)
                         && method.type == EventMethod.Type.FAILURE) {
                     Utils.log(event.getKey(), method, "Scheduling failure callback");
-                    executionQueue.add(Task.create(target, method, event, failure));
+                    executionQueue.add(Task.create(this, target, method, event, failure));
                 }
             }
         }
@@ -158,7 +155,7 @@ public class Dispatcher {
                 if (EventsParams.EMPTY_KEY.equals(method.eventKey)
                         && method.type == EventMethod.Type.FAILURE) {
                     Utils.log(event.getKey(), method, "Scheduling general failure callback");
-                    executionQueue.add(Task.create(target, method, event, failure));
+                    executionQueue.add(Task.create(this, target, method, event, failure));
                 }
             }
         }
@@ -167,7 +164,7 @@ public class Dispatcher {
 
     // Handles target object registration
     @MainThread
-    private static void handleRegistration(Object targetObj) {
+    private void handleRegistration(Object targetObj) {
         if (targetObj == null) {
             throw new NullPointerException("Target cannot be null");
         }
@@ -190,7 +187,7 @@ public class Dispatcher {
 
     // Handles target un-registration
     @MainThread
-    private static void handleUnRegistration(Object targetObj) {
+    private void handleUnRegistration(Object targetObj) {
         if (targetObj == null) {
             throw new NullPointerException("Target cannot be null");
         }
@@ -216,7 +213,7 @@ public class Dispatcher {
 
     // Handles event posting
     @MainThread
-    private static void handleEventPost(Event event) {
+    private void handleEventPost(Event event) {
         Utils.log(event.getKey(), "Handling posted event");
 
         int sizeBefore = executionQueue.size();
@@ -238,7 +235,7 @@ public class Dispatcher {
 
     // Handles event result
     @MainThread
-    private static void handleEventResult(Event event, EventResult result) {
+    private void handleEventResult(Event event, EventResult result) {
         if (!activeEvents.contains(event)) {
             Utils.logE(event.getKey(), "Cannot send result of finished event");
             return;
@@ -250,7 +247,7 @@ public class Dispatcher {
 
     // Handles event failure
     @MainThread
-    private static void handleEventFailure(Event event, EventFailure failure) {
+    private void handleEventFailure(Event event, EventFailure failure) {
         if (!activeEvents.contains(event)) {
             Utils.logE(event.getKey(), "Cannot send failure callback of finished event");
             return;
@@ -262,7 +259,7 @@ public class Dispatcher {
 
     // Handles finished event
     @MainThread
-    private static void handleTaskFinished(Task task) {
+    private void handleTaskFinished(Task task) {
         if (task.method.type != EventMethod.Type.SUBSCRIBE) {
             // We are not interested in finished callbacks, only finished subscriber calls
             return;
@@ -292,7 +289,7 @@ public class Dispatcher {
 
     // Handles scheduled execution tasks
     @MainThread
-    private static void handleTasksExecution() {
+    private void handleTasksExecution() {
         if (isExecuting || executionQueue.isEmpty()) {
             return; // Nothing to dispatch
         }
@@ -306,7 +303,7 @@ public class Dispatcher {
     }
 
     @MainThread
-    private static void handleTasksExecutionWrapped() {
+    private void handleTasksExecutionWrapped() {
         Utils.log("Dispatching: started");
 
         long started = SystemClock.uptimeMillis();
@@ -349,7 +346,7 @@ public class Dispatcher {
     }
 
     @MainThread
-    private static Task pollExecutionTask() {
+    private Task pollExecutionTask() {
         for (int i = 0, size = executionQueue.size(); i < size; i++) {
             Task task = executionQueue.get(i);
             if (!(task.method.isSingleThread && task.method.isInUse)) {
@@ -374,8 +371,11 @@ public class Dispatcher {
         private static final int MSG_POST_EVENT_FAILURE = 5;
         private static final int MSG_POST_TASK_FINISHED = 6;
 
-        MainThreadHandler() {
+        private final Dispatcher dispatcher;
+
+        MainThreadHandler(Dispatcher dispatcher) {
             super(Looper.getMainLooper());
+            this.dispatcher = dispatcher;
         }
 
         void register(Object targetObj) {
@@ -422,33 +422,33 @@ public class Dispatcher {
         private void handleMessageId(int msgId, Object obj) {
             switch (msgId) {
                 case MSG_REGISTER: {
-                    handleRegistration(obj);
+                    dispatcher.handleRegistration(obj);
                     break;
                 }
                 case MSG_UNREGISTER: {
-                    handleUnRegistration(obj);
+                    dispatcher.handleUnRegistration(obj);
                     break;
                 }
                 case MSG_EXECUTE: {
-                    handleTasksExecution();
+                    dispatcher.handleTasksExecution();
                     break;
                 }
                 case MSG_POST_EVENT: {
-                    handleEventPost((Event) obj);
+                    dispatcher.handleEventPost((Event) obj);
                     break;
                 }
                 case MSG_POST_EVENT_RESULT: {
                     Object[] data = (Object[]) obj;
-                    handleEventResult((Event) data[0], (EventResult) data[1]);
+                    dispatcher.handleEventResult((Event) data[0], (EventResult) data[1]);
                     break;
                 }
                 case MSG_POST_EVENT_FAILURE: {
                     Object[] data = (Object[]) obj;
-                    handleEventFailure((Event) data[0], (EventFailure) data[1]);
+                    dispatcher.handleEventFailure((Event) data[0], (EventFailure) data[1]);
                     break;
                 }
                 case MSG_POST_TASK_FINISHED: {
-                    handleTaskFinished((Task) obj);
+                    dispatcher.handleTaskFinished((Task) obj);
                     break;
                 }
                 default:

@@ -9,6 +9,8 @@ import java.lang.reflect.InvocationTargetException;
 
 class Task implements Runnable {
 
+    private final Dispatcher dispatcher;
+
     final EventTarget target;
     final EventMethod method;
     final Event event;
@@ -18,8 +20,9 @@ class Task implements Runnable {
     private final EventResult result;
     private final EventFailure failure;
 
-    private Task(EventTarget target, EventMethod method, Event event,
+    private Task(Dispatcher dispatcher, EventTarget target, EventMethod method, Event event,
             EventStatus status, EventResult result, EventFailure failure) {
+        this.dispatcher = dispatcher;
         this.target = target;
         this.method = method;
         this.event = event;
@@ -28,20 +31,23 @@ class Task implements Runnable {
         this.failure = failure;
     }
 
-    static Task create(EventTarget target, EventMethod method, Event event) {
-        return new Task(target, method, event, null, null, null);
+    static Task create(Dispatcher dispatcher, EventTarget target, EventMethod method, Event event) {
+        return new Task(dispatcher, target, method, event, null, null, null);
     }
 
-    static Task create(EventTarget target, EventMethod method, Event event, EventStatus status) {
-        return new Task(target, method, event, status, null, null);
+    static Task create(Dispatcher dispatcher, EventTarget target, EventMethod method, Event event,
+            EventStatus status) {
+        return new Task(dispatcher, target, method, event, status, null, null);
     }
 
-    static Task create(EventTarget target, EventMethod method, Event event, EventResult result) {
-        return new Task(target, method, event, null, result, null);
+    static Task create(Dispatcher dispatcher, EventTarget target, EventMethod method, Event event,
+            EventResult result) {
+        return new Task(dispatcher, target, method, event, null, result, null);
     }
 
-    static Task create(EventTarget target, EventMethod method, Event event, EventFailure failure) {
-        return new Task(target, method, event, null, null, failure);
+    static Task create(Dispatcher dispatcher, EventTarget target, EventMethod method, Event event,
+            EventFailure failure) {
+        return new Task(dispatcher, target, method, event, null, null, failure);
     }
 
     @Override
@@ -52,7 +58,7 @@ class Task implements Runnable {
         }
 
         // Task should be finished anyway, even if we didn't execute it
-        Dispatcher.postTaskFinished(this);
+        dispatcher.postTaskFinished(this);
     }
 
     private void run(Object targetObj) {
@@ -67,7 +73,7 @@ class Task implements Runnable {
 
                 if (cachedResult != null) {
                     Utils.log(this, "Cached result is loaded");
-                    Dispatcher.postEventResult(event, cachedResult);
+                    dispatcher.postEventResult(event, cachedResult);
                     isShouldCallMethod = false;
                 } else {
                     Utils.log(this, "No cached result");
@@ -119,9 +125,9 @@ class Task implements Runnable {
             if (methodError != null) {
                 Utils.logE(this, "Error during execution", methodError);
 
-                Dispatcher.postEventFailure(event, EventFailure.create(methodError));
+                dispatcher.postEventFailure(event, EventFailure.create(methodError));
             } else if (methodResult != null) {
-                Dispatcher.postEventResult(event, methodResult);
+                dispatcher.postEventResult(event, methodResult);
             }
         } else {
             // Re-throwing caught exception if it is from callback method

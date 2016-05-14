@@ -72,7 +72,7 @@ public class EventsManualResultTest extends AbstractTest {
             Events.register(target);
 
             // Since we're posting from UI thread event will be stated and finished synchronously
-            Event event = Event.create(TASK_KEY).post();
+            Event event = Events.post(TASK_KEY);
             // At this point event is already finished, so posted result should be ignored
             event.postResult();
         } finally {

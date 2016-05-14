@@ -3,7 +3,9 @@ package com.alexvasilkov.events;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests additional parameters and tags of events and results.
@@ -16,7 +18,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventParam_Empty_Access() {
-        Event event = Event.create(TASK_KEY).build();
+        Event event = new Builder().build();
         assertEquals(0, event.getParamsCount());
 
         // Getting non-existing params should not throw exceptions
@@ -26,14 +28,14 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventParam_Empty() {
-        Event event = Event.create(TASK_KEY).param().build();
+        Event event = new Builder().param().build();
         assertEquals(0, event.getParamsCount());
     }
 
     @SuppressWarnings("NullArgumentToVariableArgMethod")
     @Test
     public void eventParam_Null() {
-        Event event = Event.create(TASK_KEY).param(null).build();
+        Event event = new Builder().param(null).build();
 
         assertEquals(1, event.getParamsCount());
         assertNull(event.getParam(0));
@@ -42,7 +44,7 @@ public class MethodParamsDataTest extends AbstractTest {
     @SuppressWarnings("NullArgumentToVariableArgMethod")
     @Test
     public void eventParam_Chained_Null_Object() {
-        Event event = Event.create(TASK_KEY).param(null).param(PARAM).build();
+        Event event = new Builder().param(null).param(PARAM).build();
 
         assertEquals(2, event.getParamsCount());
         assertNull(event.getParam(0));
@@ -51,7 +53,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventParam_Object() {
-        Event event = Event.create(TASK_KEY).param(PARAM).build();
+        Event event = new Builder().param(PARAM).build();
 
         assertEquals(1, event.getParamsCount());
         assertEquals(PARAM, event.getParam(0));
@@ -59,7 +61,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventParam_Object_Null() {
-        Event event = Event.create(TASK_KEY).param(PARAM, null).build();
+        Event event = new Builder().param(PARAM, null).build();
 
         assertEquals(2, event.getParamsCount());
         assertEquals(PARAM, event.getParam(0));
@@ -130,7 +132,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventTag_Empty_Access() {
-        Event event = Event.create(TASK_KEY).build();
+        Event event = new Builder().build();
         assertEquals(0, event.getTagsCount());
 
         // Getting non-existing params should not throw exceptions
@@ -140,14 +142,14 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventTag_Empty() {
-        Event event = Event.create(TASK_KEY).tag().build();
+        Event event = new Builder().tag().build();
         assertEquals(0, event.getTagsCount());
     }
 
     @SuppressWarnings("NullArgumentToVariableArgMethod")
     @Test
     public void eventTag_Null() {
-        Event event = Event.create(TASK_KEY).tag(null).build();
+        Event event = new Event(new Builder().tag(null));
 
         assertEquals(1, event.getTagsCount());
         assertNull(event.getTag(0));
@@ -156,7 +158,7 @@ public class MethodParamsDataTest extends AbstractTest {
     @SuppressWarnings("NullArgumentToVariableArgMethod")
     @Test
     public void eventTag_Chained_Null_Object() {
-        Event event = Event.create(TASK_KEY).tag(null).tag(PARAM).build();
+        Event event = new Builder().tag(null).tag(PARAM).build();
 
         assertEquals(2, event.getTagsCount());
         assertNull(event.getTag(0));
@@ -165,7 +167,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventTag_Object() {
-        Event event = Event.create(TASK_KEY).tag(PARAM).build();
+        Event event = new Builder().tag(PARAM).build();
 
         assertEquals(1, event.getTagsCount());
         assertEquals(PARAM, event.getTag(0));
@@ -173,7 +175,7 @@ public class MethodParamsDataTest extends AbstractTest {
 
     @Test
     public void eventTag_Object_Null() {
-        Event event = Event.create(TASK_KEY).tag(PARAM, null).build();
+        Event event = new Builder().tag(PARAM, null).build();
 
         assertEquals(2, event.getTagsCount());
         assertEquals(PARAM, event.getTag(0));
@@ -235,6 +237,71 @@ public class MethodParamsDataTest extends AbstractTest {
         assertEquals(2, result.getTagsCount());
         assertEquals(PARAM, result.getTag(0));
         assertNull(result.getTag(1));
+    }
+
+
+    // ----------------------------
+    // Events equality
+    // ----------------------------
+
+    @Test
+    public void testEventDeepEquals() {
+        assertTrue(Event.isDeeplyEqual(
+                new Builder().build(),
+                new Builder().build()
+        ));
+
+        assertTrue(Event.isDeeplyEqual(
+                new Builder().param(PARAM).build(),
+                new Builder().param(PARAM).build()
+        ));
+
+        assertTrue(Event.isDeeplyEqual(
+                new Builder().param(PARAM, null).build(),
+                new Builder().param(PARAM, null).build()
+        ));
+
+        assertFalse(Event.isDeeplyEqual(
+                new Builder().build(),
+                new Builder(TASK_KEY + "2").build()
+        ));
+
+        assertFalse(Event.isDeeplyEqual(
+                new Builder().param(PARAM).build(),
+                new Builder().build()
+        ));
+
+        assertFalse(Event.isDeeplyEqual(
+                new Builder().param(PARAM, null).build(),
+                new Builder().param(PARAM).build()
+        ));
+    }
+
+
+    private static class Builder extends Event.Builder {
+        Builder() {
+            this(TASK_KEY);
+        }
+
+        Builder(String key) {
+            super(null, key);
+        }
+
+        @Override
+        public Builder param(Object... params) {
+            super.param(params);
+            return this;
+        }
+
+        @Override
+        public Builder tag(Object... tags) {
+            super.tag(tags);
+            return this;
+        }
+
+        Event build() {
+            return new Event(this);
+        }
     }
 
 }

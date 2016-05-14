@@ -11,14 +11,16 @@ import java.util.List;
 
 public class Event extends EventBase {
 
+    private final Dispatcher dispatcher;
     private final String key;
     private final Object[] params;
     private final Object[] tags;
 
-    Event(String key, Object[] params, Object[] tags) {
-        this.key = key;
-        this.params = params;
-        this.tags = tags;
+    Event(Builder builder) {
+        this.dispatcher = builder.dispatcher;
+        this.key = builder.key;
+        this.params = ListUtils.toArray(builder.params);
+        this.tags = ListUtils.toArray(builder.tags);
     }
 
     public String getKey() {
@@ -56,7 +58,7 @@ public class Event extends EventBase {
      * See {@link Events.Result}.
      */
     public Event postResult(EventResult result) {
-        Dispatcher.postEventResult(this, result);
+        dispatcher.postEventResult(this, result);
         return this;
     }
 
@@ -68,10 +70,6 @@ public class Event extends EventBase {
         return postResult(EventResult.create().result(params).build());
     }
 
-
-    static Event.Builder create(String eventKey) {
-        return new Event.Builder(eventKey);
-    }
 
     /**
      * <p>Two events are considered deeply equal if they have same key and exactly same
@@ -89,18 +87,20 @@ public class Event extends EventBase {
 
     public static class Builder {
 
+        private final Dispatcher dispatcher;
         private final String key;
         private List<Object> params;
         private List<Object> tags;
 
         private boolean isPosted;
 
-        Builder(@NonNull String key) {
+        Builder(Dispatcher dispatcher, @NonNull String key) {
             if (EventsParams.EMPTY_KEY.equals(key)) {
                 throw new EventsException("Event key \"" + key
                         + "\" is reserved and cannot be used");
             }
 
+            this.dispatcher = dispatcher;
             this.key = key;
         }
 
@@ -124,17 +124,13 @@ public class Event extends EventBase {
             return this;
         }
 
-        Event build() {
-            return new Event(key, ListUtils.toArray(params), ListUtils.toArray(tags));
-        }
-
         public Event post() {
             if (isPosted) {
                 throw new EventsException("Event " + key + " | Already posted");
             } else {
                 isPosted = true;
-                Event event = build();
-                Dispatcher.postEvent(event);
+                Event event = new Event(this);
+                dispatcher.postEvent(event);
                 return event;
             }
         }
