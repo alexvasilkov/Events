@@ -107,8 +107,8 @@ private static void onLoadRepositoryStatus(EventStatus status) {
 }
 ```
 
-Start state is always called before any results or failure callbacks (see further) and finished
-state is always the last one. See
+`STARTED` state is always called before any results or failure callbacks (see further)
+and `FINISHED` state is always the last one. See
 [`Events.Status`](http://static.javadoc.io/com.alexvasilkov/events/0.5.0-beta-1/com/alexvasilkov/events/Events.Status.html)
 for more details.
 
