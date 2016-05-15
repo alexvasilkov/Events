@@ -2,8 +2,10 @@ Events
 ======
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.alexvasilkov/events.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
-[![Javadocs](http://www.javadoc.io/badge/com.alexvasilkov/events.svg?style=flat-square)](http://www.javadoc.io/doc/com.alexvasilkov/events)
+[![Build Status](https://travis-ci.org/alexvasilkov/Events.svg?branch=master)](https://travis-ci.org/alexvasilkov/Events)
+[![Coverage](https://img.shields.io/codecov/c/github/alexvasilkov/events/master.svg?style=flat-square)](https://codecov.io/github/alexvasilkov/events?branch=master)
 [![Size](https://img.shields.io/badge/Methods and size-253 | 38 KB-e91e63.svg?style=flat-square)](http://www.methodscount.com/?lib=com.alexvasilkov:events:1.0.0)
+[![Javadocs](http://www.javadoc.io/badge/com.alexvasilkov/events.svg?style=flat-square&color=lightgrey)](http://www.javadoc.io/doc/com.alexvasilkov/events)
 
 Android event bus for remote methods calls and multithreading.  
 Besides components decoupling `Events` allows background subscribers execution
