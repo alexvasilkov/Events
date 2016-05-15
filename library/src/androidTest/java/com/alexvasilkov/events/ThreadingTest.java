@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 public class ThreadingTest extends AbstractTest {
 
     private static final long THREAD_SLEEP = 30L;
-    private static final long WAITING_TIME = 200L;
+    private static final long WAITING_TIME = 400L;
     private static final Object NOTIFIER = new Object();
 
     // ----------------------------
