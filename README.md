@@ -1,11 +1,10 @@
 Events
 ======
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.alexvasilkov/events.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
-[![Build Status](https://travis-ci.org/alexvasilkov/Events.svg?branch=master)](https://travis-ci.org/alexvasilkov/Events)
-[![Coverage](https://img.shields.io/codecov/c/github/alexvasilkov/events/master.svg?style=flat-square)](https://codecov.io/github/alexvasilkov/events?branch=master)
-[![Size](https://img.shields.io/badge/Methods and size-253 | 38 KB-e91e63.svg?style=flat-square)](http://www.methodscount.com/?lib=com.alexvasilkov:events:1.0.0)
-[![Javadocs](http://www.javadoc.io/badge/com.alexvasilkov/events.svg?style=flat-square&color=lightgrey)](http://www.javadoc.io/doc/com.alexvasilkov/events)
+[![Maven Central][mvn-img]][mvn-url]
+[![Build Status][build-img]][build-url]
+[![Coverage][coverage-img]][coverage-url]
+[![Size][size-img]][size-url]
 
 Android event bus for remote methods calls and multithreading.  
 Besides components decoupling `Events` allows background subscribers execution
@@ -51,8 +50,7 @@ By default subscriber method is always called on main thread, but this can be mo
 see Multithreading section below.  
 Any method names and access modifiers are allowed. Method parameters can be of any number and any
 types but they should match the one which was posted by sender.
-Method parameters options and more info can be found in `Events.Subscribe`
-[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/). 
+Method parameters options and more info can be found in `Events.Subscribe` [javadoc][javadoc-url]. 
 
 Now we need to register subscriber within event bus. That's done by passing instance of the object
 containing previous method:
@@ -110,8 +108,7 @@ private static void onLoadRepositoriesStatus(EventStatus status) {
 
 `STARTED` status is always sent before any results or failure callbacks (see further)
 and `FINISHED` status is always the last one.
-Method parameters options and more info can be found in `Events.Status`
-[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/).
+Method parameters options and more info can be found in `Events.Status` [javadoc][javadoc-url].
 
 ##### Result #####
 
@@ -137,10 +134,8 @@ private void onLoadRepositoriesResult(List<Repository> list) {
 Note that you may receive several results if, for example, several subscribers were registered
 or several results were posted from single subscriber.
 
-Method parameters and more info can be found in `Events.Result`
-[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/),
-return types options can be found in `Events.Subscribe`
-[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/),
+Method parameters and more info can be found in `Events.Result` [javadoc][javadoc-url],
+return types options can be found in `Events.Subscribe` [javadoc][javadoc-url],
 
 ##### Failures #####
 
@@ -175,8 +170,7 @@ private static void onAnyError(Throwable error) {
 }
 ```
 
-Method parameters options and more info can be found in `Events.Failure`
-[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/).
+Method parameters options and more info can be found in `Events.Failure` [javadoc][javadoc-url].
 
 
 Note that all callback methods are called on main thread, there is no option to execute them
@@ -205,3 +199,17 @@ dependencies {
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+[mvn-url]: https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events
+[mvn-img]: https://img.shields.io/maven-central/v/com.alexvasilkov/events.svg?style=flat-square
+
+[build-url]: https://travis-ci.org/alexvasilkov/Events
+[build-img]: https://img.shields.io/travis/alexvasilkov/Events/master.svg?style=flat-square
+
+[coverage-url]: https://codecov.io/github/alexvasilkov/Events?branch=master
+[coverage-img]: https://img.shields.io/codecov/c/github/alexvasilkov/Events/master.svg?style=flat-square
+
+[size-url]: http://www.methodscount.com/?lib=com.alexvasilkov:events:1.0.0
+[size-img]: https://img.shields.io/badge/Methods%20and%20size-253%20%7C%2038%20KB-e91e63.svg?style=flat-square
+
+[javadoc-url]: http://javadoc.io/doc/com.alexvasilkov/events
