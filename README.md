@@ -2,6 +2,8 @@ Events
 ======
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.alexvasilkov/events.svg?style=flat-square)](https://maven-badges.herokuapp.com/maven-central/com.alexvasilkov/events)
+[![Javadocs](http://www.javadoc.io/badge/com.alexvasilkov/events.svg?style=flat-square)](http://www.javadoc.io/doc/com.alexvasilkov/events)
+[![Size](https://img.shields.io/badge/Methods and size-253 | 38 KB-e91e63.svg?style=flat-square)](http://www.methodscount.com/?lib=com.alexvasilkov:events:1.0.0)
 
 Android event bus for remote methods calls and multithreading.  
 Besides components decoupling `Events` allows background subscribers execution
@@ -47,9 +49,8 @@ By default subscriber method is always called on main thread, but this can be mo
 see Multithreading section below.  
 Any method names and access modifiers are allowed. Method parameters can be of any number and any
 types but they should match the one which was posted by sender.
-Another options and more info can be found in
-[`Events.Subscribe`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Subscribe.html)
-javadoc. 
+Method parameters options and more info can be found in `Events.Subscribe`
+[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/). 
 
 Now we need to register subscriber within event bus. That's done by passing instance of the object
 containing previous method:
@@ -69,14 +70,12 @@ Events.unregister(this);
 #### Multithreading ####
 
 Subscriber can choose to be executed in background to offload the main thread.
-This is done using
-[`Events.Background`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Background.html)
-annotation:
+This can be done using `Events.Background` annotation:
 
 ```java
 @Background
-@Subscribe(EventsKeys.LOAD_REPOSITORY)
-private static void loadRepository(String repoId) {
+@Subscribe(EventsKeys.LOAD_REPOSITORIES)
+private static void loadRepositories(boolean force) {
     ...
 }
 ```
@@ -94,31 +93,31 @@ in memory during background execution.
 
 #### Receiving callbacks ####
 
-Once method is posted you may want to track it's execution. Few methods are available here.
+Once method is posted you may want to track its execution. Few methods are available here.
 
 ##### Status #####
 
-Subscribing for execution started / finished state:
+Subscribing for execution started / finished status:
 
 ```java
-@Status(EventsKeys.LOAD_REPOSITORY)
-private static void onLoadRepositoryStatus(EventStatus status) {
+@Status(EventsKeys.LOAD_REPOSITORIES)
+private static void onLoadRepositoriesStatus(EventStatus status) {
     ...
 }
 ```
 
-`STARTED` state is always called before any results or failure callbacks (see further)
-and `FINISHED` state is always the last one. See
-[`Events.Status`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Status.html)
-for more details.
+`STARTED` status is always sent before any results or failure callbacks (see further)
+and `FINISHED` status is always the last one.
+Method parameters options and more info can be found in `Events.Status`
+[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/).
 
 ##### Result #####
 
 To receive subscriber execution results you will need to specify return value for subscriber method:
 
 ```java
-@Subscribe(EventsKeys.LOAD_REPOSITORY)
-private static List<Repository> loadRepository(String repoId) {
+@Subscribe(EventsKeys.LOAD_REPOSITORIES)
+private static List<Repository> loadRepositories(boolean force) {
     ...
     return list;
 }
@@ -127,17 +126,19 @@ private static List<Repository> loadRepository(String repoId) {
 And then you can receive the result using:
 
 ```java
-@Result(EventsKeys.LOAD_REPOSITORY)
-private void onLoadRepositoryResult(List<Repository> list) {
+@Result(EventsKeys.LOAD_REPOSITORIES)
+private void onLoadRepositoriesResult(List<Repository> list) {
     ...
 }
 ```
 
 Note that you may receive several results if, for example, several subscribers were registered
-or several results were posted from single subscriber. There are also a few ways to provide
-subscriber execution result. See 
-[`Events.Result`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Result.html)
-javadoc for more details.
+or several results were posted from single subscriber.
+
+Method parameters and more info can be found in `Events.Result`
+[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/),
+return types options can be found in `Events.Subscribe`
+[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/),
 
 ##### Failures #####
 
@@ -147,8 +148,8 @@ but you may also want to provide custom error handling logic.
 Consider you have next subscriber:
 
 ```java
-@Subscribe(EventsKeys.LOAD_REPOSITORY)
-private static List<Repository> loadRepository(String repoId) throws IOException {
+@Subscribe(EventsKeys.LOAD_REPOSITORIES)
+private static List<Repository> loadRepositories(boolean force) throws IOException {
     ...
     throw new IOException();
 }
@@ -157,8 +158,8 @@ private static List<Repository> loadRepository(String repoId) throws IOException
 Such exception can be handled using:
 
 ```java
-@Failure(EventsKeys.LOAD_REPOSITORY)
-private void onLoadRepositoryFailure(Throwable error) {
+@Failure(EventsKeys.LOAD_REPOSITORIES)
+private void onLoadRepositoriesFailure(Throwable error) {
     ...
 }
 ```
@@ -172,9 +173,8 @@ private static void onAnyError(Throwable error) {
 }
 ```
 
-More info can be found in
-[`Events.Failure`](http://static.javadoc.io/com.alexvasilkov/events/1.0.0/com/alexvasilkov/events/Events.Failure.html)
-javadoc.
+Method parameters options and more info can be found in `Events.Failure`
+[javadoc](http://javadoc.io/doc/com.alexvasilkov/events/).
 
 
 Note that all callback methods are called on main thread, there is no option to execute them
@@ -187,8 +187,6 @@ dependencies {
     compile 'com.alexvasilkov:events:1.0.0'
 }
 ```
-
-[Javadoc](http://www.javadoc.io/doc/com.alexvasilkov/events/1.0.0) documentation.
 
 #### License ####
 
